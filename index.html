@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beauty Shop POS</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <h1>Beauty Shop POS</h1>
+                <p>Modern Beauty Shop Point of Sale for Fashion & Cosmetics</p>
+            </div>
+            <div class="header-icon">
+                <i class="fas fa-square"></i>
+            </div>
+        </header>
+
+        <!-- Main POS Interface -->
+        <div class="pos-panel">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="logo">
+                    <span>BEAUTY SHOP</span>
+                </div>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search Product or Order ID here">
+                    <i class="fas fa-times"></i>
+                </div>
+                <div class="user-controls">
+                    <div class="user-info">
+                        <i class="fas fa-user"></i>
+                        <span>Welcome, Johnny!</span>
+                    </div>
+                    <i class="fas fa-bell"></i>
+                    <i class="fas fa-cog"></i>
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Product Display Area -->
+                <div class="product-area">
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="clothes">Clothes</button>
+                        <button class="tab-btn" data-tab="cosmetics">Cosmetics</button>
+                        <button class="tab-btn" data-tab="shoes">Shoes</button>
+                    </div>
+
+                    <!-- Category Grid -->
+                    <div class="category-grid" id="categoryGrid">
+                        <!-- Categories will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Product Grid -->
+                    <div class="product-grid" id="productGrid" style="display: none;">
+                        <!-- Products will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">4</button>
+                        <button class="page-btn">5</button>
+                        <button class="page-btn">6</button>
+                        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Shopping Cart Sidebar -->
+                <div class="cart-sidebar">
+                    <!-- Customer Selection -->
+                    <div class="customer-select">
+                        <label for="customer">Select a Customer</label>
+                        <select id="customer">
+                            <option value="">Choose customer...</option>
+                            <option value="walk-in">Walk-in Customer</option>
+                            <option value="regular">Regular Customer</option>
+                            <option value="vip">VIP Customer</option>
+                        </select>
+                    </div>
+
+                    <!-- Cart Items -->
+                    <div class="cart-items">
+                        <div class="cart-header">
+                            <span>Product</span>
+                            <span>Price</span>
+                            <span>Qty</span>
+                            <span>Subtotal</span>
+                        </div>
+                        <div class="cart-list" id="cartList">
+                            <!-- Cart items will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="order-summary">
+                        <div class="summary-row">
+                            <span>Total Items:</span>
+                            <span id="totalItems">0</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total Payable:</span>
+                            <span id="totalPayable">$0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Discount:</span>
+                            <span id="discount">$0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Shipping:</span>
+                            <span id="shipping">$0.00</span>
+                        </div>
+                        <div class="summary-row grand-total">
+                            <span>Grand Total:</span>
+                            <span id="grandTotal">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Cart Action Buttons -->
+                    <div class="cart-actions">
+                        <button class="cancel-btn" id="cancelBtn">
+                            <i class="fas fa-trash"></i>
+                            Cancel All
+                        </button>
+                        <button class="checkout-btn" id="checkoutBtn">
+                            <i class="fas fa-credit-card"></i>
+                            Process Payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
