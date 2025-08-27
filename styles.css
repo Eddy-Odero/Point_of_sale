@@ -384,11 +384,11 @@ body {
   display: flex;
   flex-direction: column;
   width: 400px;
-  max-height: 80vh;  /* limit height of entire sidebar */
+  max-height: 100%;  
   background: #f8f9fa;
   padding: 20px;
   border-left: 1px solid #e9ecef;
-  overflow: hidden;  /* prevent overall scroll */
+ overflow-y: auto;
 }
 
 /* Customer Selection */
