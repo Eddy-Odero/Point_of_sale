@@ -620,3 +620,39 @@ cancel-btn, .checkout-btn {
 .cart-actions { border: 2px solid orange; }
 
 }
+.toast {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background: #333;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    z-index: 9999;
+    opacity: 0.95;
+}
+.toast.error {
+    background-color: #c0392b;
+}
+.toast.success {
+    background-color: #27ae60;
+}
+.back-button {
+    margin: 1rem;
+}
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 1rem;
+}
+.page-btn {
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.page-btn.active {
+    background-color: #3498db;
+    color: white;
+}

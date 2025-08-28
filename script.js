@@ -609,7 +609,7 @@ function generateReceipt() {
         date: new Date().toLocaleString(),
         items: cart,
         total: cart.reduce((sum, item) => sum + item.subtotal, 0),
-        customer: document.getElementById('customer').value || 'Walk-in Customer'
+        customer: document.getElementById('customer').value 
     };
     
     console.log('Receipt:', receipt);
