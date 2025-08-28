@@ -490,7 +490,6 @@ function clearSearch() {
     }
 }
 
-// Update pagination
 function updatePagination(totalItems) {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const pagination = document.querySelector('.pagination');
