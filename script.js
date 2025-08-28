@@ -481,7 +481,6 @@ function handleSearch() {
     }
 }
 
-// Clear search
 function clearSearch() {
     searchInput.value = '';
     if (currentSubcategory) {
