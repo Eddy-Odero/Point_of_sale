@@ -525,19 +525,6 @@ body {
   gap: 10px;
 }
 
-.cart-actions::before {
-    content: "PAYMENT BUTTONS";
-    position: absolute;
-    top: -10px;
-    left: 10px;
-    background: #e74c3c;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: bold;
-}
-
 cancel-btn, .checkout-btn {
   flex: 1;
   padding: 10px;
