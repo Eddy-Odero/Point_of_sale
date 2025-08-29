@@ -131,7 +131,6 @@ body {
     overflow-y: auto;
 }
 
-/* Tabs */
 .tabs {
     display: flex;
     gap: 10px;
