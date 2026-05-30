@@ -3,29 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TINAH COSMETICS — Point of Sale</title>
-<link rel="stylesheet" href="styles.css">
+<title>MAISON — Point of Sale</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+<!-- LOADING SCREEN -->
+<div id="loadScreen">
+  <div class="load-brand">MAISON <span>Boutique</span></div>
+  <div class="load-bar"></div>
+  <div class="load-status" id="loadStatus">Initialising…</div>
+</div>
+
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="brand">TINAH <span>COSMETICS</span></div>
+  <div class="brand">MAISON <span>Boutique</span></div>
   <div class="topbar-center">
     <button class="tab-btn active" onclick="switchView('pos')">POS</button>
     <button class="tab-btn" onclick="switchView('inventory')">Inventory</button>
   </div>
   <div class="topbar-right">
-    <div id="clock" style="font-size:11px;letter-spacing:0.05em;"></div>
-    <div class="cashier-badge"><span class="cashier-dot"></span>Cashier — Vivian</div>
+    <div id="clock"></div>
+    <div class="cashier-badge" id="cashierBadge">
+      <span class="cashier-dot"></span><span id="cashierName">Cashier</span>
+    </div>
   </div>
 </div>
 
+<!-- JSON LOAD BANNER -->
+<div class="json-banner" id="jsonBanner">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+  <span id="jsonSourceLabel">Data loaded from <strong>maison-data.json</strong> — <span id="productCount">0</span> products</span>
+  <div class="json-actions">
+    <button class="json-link-btn" onclick="triggerJsonLoad()">📂 Load JSON</button>
+    <button class="json-link-btn" onclick="openExportModal()">💾 Export JSON</button>
+  </div>
+</div>
+<input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJsonFile(event)">
+
 <!-- POS VIEW -->
 <div id="posView" class="main">
-  <!-- CATALOGUE -->
   <div class="catalogue">
     <div class="catalogue-header">
       <div class="search-row">
@@ -67,7 +85,7 @@
         <span class="val" id="subtotal">KES 0</span>
       </div>
       <div class="discount-row">
-        <input class="discount-input" id="discountInput" placeholder="Discount % or amount" oninput="recalc()">
+        <input class="discount-input" id="discountInput" placeholder="Discount % or flat amount" oninput="recalc()">
         <button class="btn-outline" onclick="recalc()">Apply</button>
       </div>
       <div class="summary-row" id="discountRow" style="display:none">
@@ -75,7 +93,7 @@
         <span class="val" id="discountVal" style="color:var(--success)">— KES 0</span>
       </div>
       <div class="summary-row">
-        <span>VAT (16%)</span>
+        <span>VAT (<span id="vatLabel">16</span>%)</span>
         <span class="val" id="vatVal">KES 0</span>
       </div>
       <div class="summary-row total">
@@ -91,17 +109,25 @@
 <!-- INVENTORY VIEW -->
 <div id="inventoryView">
   <div class="inv-header">
-    <div class="inv-title">Inventory Management</div>
-    <button class="btn-gold" onclick="openAddModal()">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-      Add Item
-    </button>
+    <div class="inv-title">Inventory</div>
+    <div class="inv-controls">
+      <div class="search-wrap" style="width:220px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" id="invSearchInput" placeholder="Search inventory…" oninput="renderInventoryTable()" style="padding-left:32px">
+      </div>
+      <button class="btn-gold" onclick="openAddModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add Item
+      </button>
+    </div>
   </div>
   <div class="inv-table-wrap">
     <table>
       <thead>
         <tr>
+          <th></th>
           <th>Item</th>
+          <th>SKU</th>
           <th>Category</th>
           <th>Sub-Category</th>
           <th>Price</th>
@@ -114,26 +140,51 @@
   </div>
 </div>
 
-<!-- ADD/EDIT MODAL -->
-<div class="overlay" id="itemModal" style="display:none" onclick="e => e.stopPropagation()">
+<!-- ADD / EDIT MODAL -->
+<div class="overlay" id="itemModal" style="display:none">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">New Item</div>
       <button class="modal-close" onclick="closeItemModal()">✕</button>
     </div>
     <div class="modal-body">
+      <!-- IMAGE UPLOAD -->
+      <div class="form-row">
+        <label class="form-label">Product Image</label>
+        <div class="img-upload-area" id="imgUploadArea" onclick="document.getElementById('imgFileInput').click()"
+          ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <img id="imgPreview" src="" style="display:none">
+          <div class="img-upload-overlay">
+            <span style="font-size:22px">🖼</span>
+            <span style="font-size:11px;letter-spacing:0.08em;color:var(--gold)">Change Image</span>
+          </div>
+          <div class="img-placeholder" id="imgPlaceholder">
+            <div class="img-placeholder-icon">📷</div>
+            <div class="img-placeholder-text">Click or drag & drop</div>
+            <div class="img-placeholder-sub">PNG, JPG, WEBP supported</div>
+          </div>
+        </div>
+        <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="handleImageFile(event)">
+        <div class="img-url-row">
+          <input type="text" id="imgUrlInput" placeholder="…or paste an image URL" oninput="previewFromUrl()">
+          <button onclick="previewFromUrl()">Preview</button>
+        </div>
+        <div class="img-note" style="margin-top:6px">Uploaded images are stored as base64 in the JSON export</div>
+      </div>
+
       <div class="form-row">
         <label class="form-label">Item Name</label>
-        <input class="form-input" id="f_name" placeholder="e.g. Silk Blouse">
+        <input class="form-input" id="f_name" placeholder="e.g. Silk Wrap Blouse">
+      </div>
+      <div class="form-row">
+        <label class="form-label">SKU</label>
+        <input class="form-input" id="f_sku" placeholder="e.g. CLO-007">
       </div>
       <div class="form-row-split">
         <div class="form-row" style="margin-bottom:0">
           <label class="form-label">Category</label>
           <select class="form-select" id="f_cat" onchange="updateSubcats()">
             <option value="">— Select —</option>
-            <option value="Clothing">Clothing</option>
-            <option value="Shoes">Shoes</option>
-            <option value="Cosmetics">Cosmetics</option>
           </select>
         </div>
         <div class="form-row" style="margin-bottom:0">
@@ -154,13 +205,13 @@
         </div>
       </div>
       <div class="form-row" style="margin-top:14px">
-        <label class="form-label">Emoji Icon</label>
-        <input class="form-input" id="f_emoji" placeholder="e.g. 👗 👠 💄">
+        <label class="form-label">Emoji Fallback</label>
+        <input class="form-input" id="f_emoji" placeholder="e.g. 👗  (shown if no image)">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeItemModal()">Cancel</button>
-      <button class="btn-gold" id="saveItemBtn" onclick="saveItem()">Save Item</button>
+      <button class="btn-gold" id="saveItemBtn" onclick="saveItem()" style="padding:10px 24px">Save Item</button>
     </div>
   </div>
 </div>
@@ -193,33 +244,31 @@
       </div>
       <div class="cash-section visible" id="cashSection">
         <label class="form-label">Cash Tendered</label>
-        <input class="form-input" id="cashTendered" type="number" placeholder="Enter amount" oninput="calcChange()" style="font-size:16px; padding:12px;">
+        <input class="form-input" id="cashTendered" type="number" placeholder="Enter amount" oninput="calcChange()" style="font-size:16px;padding:12px;margin-bottom:0">
         <div class="numpad" id="numpad"></div>
         <div class="change-display">
-          <span style="font-size:11px; letter-spacing:0.08em;">CHANGE</span>
+          <span style="font-size:11px;letter-spacing:0.08em">CHANGE</span>
           <span class="change-val" id="changeVal">KES 0.00</span>
         </div>
       </div>
       <div class="cash-section" id="cardSection">
-        <div style="text-align:center;padding:24px 0;">
-          <div style="font-size:48px;margin-bottom:12px;">💳</div>
-          <div style="font-size:12px;color:var(--text-dim);letter-spacing:0.1em;">Swipe, insert, or tap your card</div>
-          <div style="font-size:11px;color:var(--text-faint);margin-top:8px;letter-spacing:0.05em;">Waiting for terminal…</div>
+        <div style="text-align:center;padding:28px 0">
+          <div style="font-size:52px;margin-bottom:12px">💳</div>
+          <div style="font-size:12px;color:var(--text-dim);letter-spacing:0.1em">Swipe, insert, or tap your card</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:8px;letter-spacing:0.05em">Waiting for terminal…</div>
         </div>
       </div>
       <div class="cash-section" id="mpesaSection">
         <div class="form-row">
           <label class="form-label">M-Pesa Phone Number</label>
-          <input class="form-input" id="mpesaPhone" placeholder="07XX XXX XXX">
+          <input class="form-input" id="mpesaPhone" placeholder="07XX XXX XXX" style="font-size:15px;padding:12px">
         </div>
-        <div style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em;text-align:center;padding:10px 0;">Customer will receive STK push prompt</div>
+        <div style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em;text-align:center;padding:8px 0">Customer will receive an STK push on their phone</div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closePayment()">Cancel</button>
-      <button class="btn-gold" onclick="completePayment()" style="padding: 10px 28px;">
-        Confirm Payment ✓
-      </button>
+      <button class="btn-gold" onclick="completePayment()" style="padding:10px 28px">Confirm Payment ✓</button>
     </div>
   </div>
 </div>
@@ -234,13 +283,30 @@
       <div class="receipt-lines" id="receiptLines"></div>
     </div>
     <div class="modal-footer" style="justify-content:center">
-      <button class="btn-gold" onclick="newTransaction()" style="padding:11px 32px;">New Transaction</button>
+      <button class="btn-gold" onclick="newTransaction()" style="padding:11px 32px">New Transaction</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST CONTAINER -->
+<!-- JSON EXPORT MODAL -->
+<div class="overlay" id="exportModal" style="display:none">
+  <div class="modal json-export-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Export JSON</div>
+      <button class="modal-close" onclick="document.getElementById('exportModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <pre class="json-pre" id="jsonExportPre"></pre>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('exportModal').style.display='none'">Close</button>
+      <button class="btn-gold" onclick="downloadJson()" style="padding:10px 24px">⬇ Download JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
 <div class="toast-container" id="toastContainer"></div>
- <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
