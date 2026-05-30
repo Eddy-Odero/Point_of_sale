@@ -640,7 +640,7 @@ function toast(msg) {
 // ═══════════════════════════════════════════════
 function getSeedData() {
   return {
-    store: { name:"MAISON Boutique", cashier:"Amara", currency:"KES", vat_rate:0.16 },
+    store: { name:"TINAH COSMETICS", cashier:"Vivian", currency:"KES", vat_rate:0.16 },
     categories: [
       { id:"clothing", label:"Clothing", subcategories:["Tops & Blouses","Trousers & Pants","Dresses","Skirts","Jackets & Coats","Suits","Knitwear","Activewear"] },
       { id:"shoes",    label:"Shoes",    subcategories:["Heels","Flats","Sneakers","Boots","Sandals","Loafers","Mules"] },
@@ -662,7 +662,17 @@ function getSeedData() {
       { id:13, name:"Gold Radiance Serum", category:"cosmetics",subcategory:"Serums",           price:4800,  stock:10, sku:"COS-003", image_url:"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&q=80", emoji:"✨" },
       { id:14, name:"Shea Butter Soap",    category:"cosmetics",subcategory:"Soaps",            price:580,   stock:30, sku:"COS-004", image_url:"https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&q=80", emoji:"🧼" },
       { id:15, name:"Velvet Lip Colour",   category:"cosmetics",subcategory:"Lip Colour",       price:1200,  stock:18, sku:"COS-005", image_url:"https://www.lotus.in/cdn/shop/files/04_6f59dfae-9b2f-4327-94f3-c62dd75045b8.jpg?v=1754469201&width=1600", emoji:"💄" },
-      { id:16, name:"Noir Eau de Parfum",  category:"cosmetics",subcategory:"Perfumes",         price:8500,  stock:7,  sku:"COS-006", image_url:"https://i.ebayimg.com/images/g/UYkAAOSwXBdlZ7~G/s-l1200.jpg", emoji:"🌺" }
+      { id:16, name:"Noir Eau de Parfum",  category:"cosmetics",subcategory:"Perfumes",         price:8500,  stock:7,  sku:"COS-006", image_url:"https://i.ebayimg.com/images/g/UYkAAOSwXBdlZ7~G/s-l1200.jpg", emoji:"🌺" },
+      { id:17, name:"Cashmere Knit Sweater", category:"clothing", subcategory:"Sweaters & Knitwear", price:9800, stock:6, sku:"CLO-007", image_url:"https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80", emoji:"🧶" },
+{ id:18, name:"Denim Jacket", category:"clothing", subcategory:"Jackets & Coats", price:7600, stock:9, sku:"CLO-008", image_url:"https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400&q=80", emoji:"🧥" },
+{ id:19, name:"Pleated Maxi Dress", category:"clothing", subcategory:"Dresses", price:9200, stock:4, sku:"CLO-009", image_url:"https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400&q=80", emoji:"👗" },
+{ id:20, name:"Tailored Jumpsuit", category:"clothing", subcategory:"Jumpsuits", price:10800, stock:5, sku:"CLO-010", image_url:"https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&q=80", emoji:"✨" },
+{ id:21, name:"Leather Sneakers", category:"shoes", subcategory:"Sneakers", price:9500, stock:10, sku:"SHO-005", image_url:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80", emoji:"👟" },
+{ id:22, name:"Pointed-Toe Flats", category:"shoes", subcategory:"Flats", price:5400, stock:12, sku:"SHO-006", image_url:"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80", emoji:"🥿" },
+{ id:23, name:"Vitamin C Face Serum", category:"cosmetics", subcategory:"Serums", price:3900, stock:14, sku:"COS-007", image_url:"https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&q=80", emoji:"🍊" },
+{ id:24, name:"Lavender Night Cream", category:"cosmetics", subcategory:"Creams", price:2600, stock:16, sku:"COS-008", image_url:"https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&q=80", emoji:"💜" },
+{ id:25, name:"Coconut Hair Mask", category:"cosmetics", subcategory:"Hair Care", price:1800, stock:22, sku:"COS-009", image_url:"https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&q=80", emoji:"🥥" },
+{ id:26, name:"Matte Finish Foundation", category:"cosmetics", subcategory:"Makeup", price:3200, stock:13, sku:"COS-010", image_url:"https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80", emoji:"🎨" }
     ]
   };
 }
