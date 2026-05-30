@@ -1,722 +1,403 @@
-// Beauty Shop Product Data
-const beautyShopData = {
-    clothes: {
-        name: "Clothes",
-        icon: "👕",
-        subcategories: {
-            shirts: {
-                name: "Shirts",
-                icon: "👔",
-                items: [
-                    { id: "c1", name: "Casual Shirt", price: 45.00, stock: "50/100", icon: "👔" },
-                    { id: "c2", name: "Formal Shirt", price: 65.00, stock: "30/80", icon: "👔" },
-                    { id: "c3", name: "T-Shirt", price: 25.00, stock: "100/150", icon: "👕" },
-                    { id: "c4", name: "Polo Shirt", price: 35.00, stock: "60/90", icon: "👕" }
-                ]
-            },
-            dresses: {
-                name: "Dresses",
-                icon: "👗",
-                items: [
-                    { id: "c5", name: "Summer Dress", price: 85.00, stock: "25/50", icon: "👗" },
-                    { id: "c6", name: "Evening Dress", price: 120.00, stock: "15/30", icon: "👗" },
-                    { id: "c7", name: "Casual Dress", price: 55.00, stock: "40/70", icon: "👗" }
-                ]
-            },
-            pants: {
-                name: "Pants",
-                icon: "👖",
-                items: [
-                    { id: "c8", name: "Jeans", price: 75.00, stock: "80/120", icon: "👖" },
-                    { id: "c9", name: "Dress Pants", price: 90.00, stock: "35/60", icon: "👖" },
-                    { id: "c10", name: "Casual Pants", price: 50.00, stock: "45/80", icon: "👖" }
-                ]
-            },
-            jackets: {
-                name: "Jackets",
-                icon: "🧥",
-                items: [
-                    { id: "c11", name: "Leather Jacket", price: 150.00, stock: "20/40", icon: "🧥" },
-                    { id: "c12", name: "Denim Jacket", price: 85.00, stock: "30/50", icon: "🧥" },
-                    { id: "c13", name: "Blazer", price: 110.00, stock: "25/45", icon: "🧥" }
-                ]
-            }
-        }
-    },
-    cosmetics: {
-        name: "Cosmetics",
-        icon: "💄",
-        subcategories: {
-            makeup: {
-                name: "Makeup",
-                icon: "💄",
-                items: [
-                    { id: "m1", name: "Lipstick", price: 25.00, stock: "100/200", icon: "💄" },
-                    { id: "m2", name: "Foundation", price: 45.00, stock: "60/120", icon: "💄" },
-                    { id: "m3", name: "Mascara", price: 30.00, stock: "80/150", icon: "💄" },
-                    { id: "m4", name: "Eyeshadow", price: 35.00, stock: "70/130", icon: "💄" },
-                    { id: "m5", name: "Blush", price: 28.00, stock: "50/100", icon: "💄" }
-                ]
-            },
-            skincare: {
-                name: "Skincare",
-                icon: "🧴",
-                items: [
-                    { id: "s1", name: "Moisturizer", price: 40.00, stock: "75/140", icon: "🧴" },
-                    { id: "s2", name: "Cleanser", price: 35.00, stock: "90/160", icon: "🧴" },
-                    { id: "s3", name: "Sunscreen", price: 30.00, stock: "65/120", icon: "🧴" },
-                    { id: "s4", name: "Serum", price: 55.00, stock: "40/80", icon: "🧴" }
-                ]
-            },
-            perfume: {
-                name: "Perfume",
-                icon: "🌸",
-                items: [
-                    { id: "p1", name: "Floral Perfume", price: 85.00, stock: "30/60", icon: "🌸" },
-                    { id: "p2", name: "Citrus Perfume", price: 75.00, stock: "25/50", icon: "🌸" },
-                    { id: "p3", name: "Woody Perfume", price: 95.00, stock: "20/40", icon: "🌸" }
-                ]
-            },
-            haircare: {
-                name: "Hair Care",
-                icon: "🧴",
-                items: [
-                    { id: "h1", name: "Shampoo", price: 25.00, stock: "120/200", icon: "🧴" },
-                    { id: "h2", name: "Conditioner", price: 28.00, stock: "110/180", icon: "🧴" },
-                    { id: "h3", name: "Hair Mask", price: 45.00, stock: "40/80", icon: "🧴" }
-                ]
-            }
-        }
-    },
-    shoes: {
-        name: "Shoes",
-        icon: "👠",
-        subcategories: {
-            heels: {
-                name: "Heels",
-                icon: "👠",
-                items: [
-                    { id: "sh1", name: "Stiletto Heels", price: 120.00, stock: "25/50", icon: "👠" },
-                    { id: "sh2", name: "Block Heels", price: 95.00, stock: "30/60", icon: "👠" },
-                    { id: "sh3", name: "Wedges", price: 85.00, stock: "35/70", icon: "👠" }
-                ]
-            },
-            sneakers: {
-                name: "Sneakers",
-                icon: "👟",
-                items: [
-                    { id: "sn1", name: "Running Shoes", price: 110.00, stock: "50/100", icon: "👟" },
-                    { id: "sn2", name: "Casual Sneakers", price: 75.00, stock: "80/150", icon: "👟" },
-                    { id: "sn3", name: "Athletic Shoes", price: 95.00, stock: "45/90", icon: "👟" }
-                ]
-            },
-            flats: {
-                name: "Flats",
-                icon: "🥿",
-                items: [
-                    { id: "sf1", name: "Ballet Flats", price: 65.00, stock: "40/80", icon: "🥿" },
-                    { id: "sf2", name: "Loafers", price: 85.00, stock: "30/60", icon: "🥿" },
-                    { id: "sf3", name: "Sandals", price: 55.00, stock: "60/120", icon: "🥿" }
-                ]
-            },
-            boots: {
-                name: "Boots",
-                icon: "👢",
-                items: [
-                    { id: "sb1", name: "Ankle Boots", price: 130.00, stock: "25/50", icon: "👢" },
-                    { id: "sb2", name: "Knee Boots", price: 150.00, stock: "20/40", icon: "👢" },
-                    { id: "sb3", name: "Chelsea Boots", price: 110.00, stock: "30/60", icon: "👢" }
-                ]
-            }
-        }
-    }
+
+// ─── DATA ───────────────────────────────────────────────
+const SUBCATS = {
+  Clothing: ['Tops & Blouses','Trousers & Pants','Dresses','Skirts','Jackets & Coats','Suits','Knitwear','Activewear'],
+  Shoes: ['Heels','Flats','Sneakers','Boots','Sandals','Loafers','Mules'],
+  Cosmetics: ['Soaps','Creams','Lotions','Serums','Foundations','Perfumes','Lip Colour','Eye Makeup']
 };
 
-// Application state
+let products = [
+  { id:1, name:'Silk Wrap Blouse', cat:'Clothing', sub:'Tops & Blouses', price:4200, stock:8, emoji:'👗' },
+  { id:2, name:'High-Waist Trousers', cat:'Clothing', sub:'Trousers & Pants', price:5800, stock:5, emoji:'👖' },
+  { id:3, name:'Floral Midi Dress', cat:'Clothing', sub:'Dresses', price:7500, stock:3, emoji:'👒' },
+  { id:4, name:'Wool Blend Coat', cat:'Clothing', sub:'Jackets & Coats', price:18500, stock:4, emoji:'🧥' },
+  { id:5, name:'Fitted Blazer', cat:'Clothing', sub:'Suits', price:12000, stock:6, emoji:'🤵' },
+  { id:6, name:'Strappy Heels', cat:'Shoes', sub:'Heels', price:8900, stock:7, emoji:'👠' },
+  { id:7, name:'Block Heel Mules', cat:'Shoes', sub:'Mules', price:6400, stock:4, emoji:'🩴' },
+  { id:8, name:'Classic Loafers', cat:'Shoes', sub:'Loafers', price:7200, stock:9, emoji:'👞' },
+  { id:9, name:'Ankle Boots', cat:'Shoes', sub:'Boots', price:11500, stock:3, emoji:'👢' },
+  { id:10, name:'Rose Moisturiser', cat:'Cosmetics', sub:'Creams', price:2100, stock:15, emoji:'🌹' },
+  { id:11, name:'Argan Body Lotion', cat:'Cosmetics', sub:'Lotions', price:1650, stock:20, emoji:'🧴' },
+  { id:12, name:'Gold Radiance Serum', cat:'Cosmetics', sub:'Serums', price:4800, stock:10, emoji:'✨' },
+  { id:13, name:'Shea Butter Soap', cat:'Cosmetics', sub:'Soaps', price:580, stock:30, emoji:'🧼' },
+  { id:14, name:'Velvet Lip Colour', cat:'Cosmetics', sub:'Lip Colour', price:1200, stock:18, emoji:'💄' },
+  { id:15, name:'Noir Eau de Parfum', cat:'Cosmetics', sub:'Perfumes', price:8500, stock:7, emoji:'🌺' },
+  { id:16, name:'A-Line Mini Skirt', cat:'Clothing', sub:'Skirts', price:3200, stock:11, emoji:'👗' },
+];
+
 let cart = [];
-let currentCategory = 'clothes';
-let currentSubcategory = null;
-let currentPage = 1;
-let itemsPerPage = 8;
+let activeCat = 'All';
+let activeSub = 'All';
+let editingId = null;
+let nextId = 17;
+let payMethod = 'cash';
+let discountAmt = 0;
 
-// DOM elements
-const categoryGrid = document.getElementById('categoryGrid');
-const productGrid = document.getElementById('productGrid');
-const cartList = document.getElementById('cartList');
-const totalItemsElement = document.getElementById('totalItems');
-const totalPayableElement = document.getElementById('totalPayable');
-const discountElement = document.getElementById('discount');
-const shippingElement = document.getElementById('shipping');
-const grandTotalElement = document.getElementById('grandTotal');
-const searchInput = document.querySelector('.search-bar input');
-const tabButtons = document.querySelectorAll('.tab-btn');
-const cancelBtn = document.getElementById('cancelBtn');
-const checkoutBtn = document.getElementById('checkoutBtn');
+// ─── CLOCK ──────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-KE', { hour:'2-digit', minute:'2-digit' }) + ' · ' +
+    now.toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short' });
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-// Initialize the application
-function init() {
-    console.log('Initializing application...');
-    console.log('Cancel button:', cancelBtn);
-    console.log('Checkout button:', checkoutBtn);
-    
-    renderCategories();
-    setupEventListeners();
-    updateCartDisplay();
+// ─── TABS ────────────────────────────────────────────────
+function switchView(v) {
+  document.getElementById('posView').classList.toggle('hidden', v !== 'pos');
+  const inv = document.getElementById('inventoryView');
+  inv.classList.toggle('active', v === 'inventory');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0 && v==='pos') || (i===1 && v==='inventory')));
+  if (v === 'inventory') renderInventoryTable();
 }
 
-// Setup event listeners
-function setupEventListeners() {
-    // Search functionality
-    searchInput.addEventListener('input', handleSearch);
-    
-    // Tab switching
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentCategory = btn.dataset.tab;
-            currentSubcategory = null;
-            currentPage = 1;
-            renderCategories();
-        });
-    });
-    
-    // Cart action buttons
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', handleCancel);
-        console.log('Cancel button event listener added');
-    } else {
-        console.error('Cancel button not found!');
-    }
-    
-    if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', handleCheckout);
-        console.log('Checkout button event listener added');
-    } else {
-        console.error('Checkout button not found!');
-    }
-    
-    // Clear search
-    document.querySelector('.search-bar .fa-times').addEventListener('click', clearSearch);
+// ─── CATEGORY CHIPS ──────────────────────────────────────
+function renderCatChips() {
+  const cats = ['All','Clothing','Shoes','Cosmetics'];
+  document.getElementById('catChips').innerHTML = cats.map(c =>
+    `<button class="cat-chip ${c===activeCat?'active':''}" onclick="selectCat('${c}')">${c}</button>`
+  ).join('');
 }
 
-// Render categories
-function renderCategories() {
-    const category = beautyShopData[currentCategory];
-    categoryGrid.innerHTML = '';
-    productGrid.style.display = 'none';
-    categoryGrid.style.display = 'grid';
-    
-    Object.entries(category.subcategories).forEach(([key, subcategory]) => {
-        const categoryCard = createCategoryCard(key, subcategory);
-        categoryGrid.appendChild(categoryCard);
-    });
+function selectCat(cat) {
+  activeCat = cat;
+  activeSub = 'All';
+  renderCatChips();
+  renderSubcats();
+  filterProducts();
 }
 
-// Create category card
-function createCategoryCard(key, subcategory) {
-    const card = document.createElement('div');
-    card.className = 'category-card';
-    card.innerHTML = `
-        <div class="category-icon">${subcategory.icon}</div>
-        <div class="category-name">${subcategory.name}</div>
-        <div class="category-count">${subcategory.items.length} items</div>
-        <button class="add-category-btn">View Products</button>
-    `;
-    
-    card.querySelector('.add-category-btn').addEventListener('click', () => {
-        currentSubcategory = key;
-        renderProducts();
-    });
-    
-    return card;
+function renderSubcats() {
+  const strip = document.getElementById('subcatStrip');
+  if (activeCat === 'All') { strip.innerHTML = ''; return; }
+  const subs = ['All', ...(SUBCATS[activeCat] || [])];
+  strip.innerHTML = subs.map(s =>
+    `<button class="subcat-btn ${s===activeSub?'active':''}" onclick="selectSub('${s}')">${s}</button>`
+  ).join('');
 }
 
-// Render products
-function renderProducts() {
-    const subcategory = beautyShopData[currentCategory].subcategories[currentSubcategory];
-    const filteredProducts = filterProducts(subcategory.items);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const productsToShow = filteredProducts.slice(startIndex, endIndex);
-    
-    categoryGrid.style.display = 'none';
-    productGrid.style.display = 'grid';
-    productGrid.innerHTML = '';
-    
-    // Remove any existing back button first
-    const existingBackBtn = document.querySelector('.back-button');
-    if (existingBackBtn) {
-        existingBackBtn.remove();
-    }
-    
-    // Add back button
-    const backBtn = document.createElement('div');
-    backBtn.className = 'back-button';
-    backBtn.innerHTML = `
-        <button onclick="goBackToCategories()" style="
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            font-weight: 500;
-        ">
-            <i class="fas fa-arrow-left"></i> Back to ${beautyShopData[currentCategory].name}
-        </button>
-    `;
-    productGrid.parentNode.insertBefore(backBtn, productGrid);
-    
-    productsToShow.forEach(product => {
-        const productCard = createProductCard(product);
-        productGrid.appendChild(productCard);
-    });
-    
-    updatePagination(filteredProducts.length);
+function selectSub(sub) {
+  activeSub = sub;
+  renderSubcats();
+  filterProducts();
 }
 
-// Go back to categories
-function goBackToCategories() {
-    currentSubcategory = null;
-    currentPage = 1;
-    renderCategories();
-    const backBtn = document.querySelector('.back-button');
-    if (backBtn) backBtn.remove();
+// ─── PRODUCTS GRID ────────────────────────────────────────
+function filterProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = products.filter(p => {
+    const matchCat = activeCat === 'All' || p.cat === activeCat;
+    const matchSub = activeSub === 'All' || p.sub === activeSub;
+    const matchQ = !q || p.name.toLowerCase().includes(q) || p.sub.toLowerCase().includes(q);
+    return matchCat && matchSub && matchQ;
+  });
+  renderProducts(filtered);
 }
 
-// Filter products based on search
-function filterProducts(products) {
-    const searchTerm = searchInput.value.toLowerCase();
-    if (searchTerm) {
-        return products.filter(product => 
-            product.name.toLowerCase().includes(searchTerm)
-        );
-    }
-    return products;
+function renderProducts(list) {
+  const grid = document.getElementById('productsGrid');
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-faint);font-size:13px;letter-spacing:0.1em;">No items found</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(p => `
+    <div class="product-card ${p.stock===0?'out-of-stock':''}" onclick="addToCart(${p.id})">
+      <div class="product-img">${p.emoji}</div>
+      <div class="product-actions">
+        <div class="icon-btn" onclick="event.stopPropagation();openEditModal(${p.id})" title="Edit">✏</div>
+        <div class="icon-btn del" onclick="event.stopPropagation();deleteProduct(${p.id})" title="Delete">✕</div>
+      </div>
+      <div class="stock-badge">${p.stock > 0 ? p.stock : 'OUT'}</div>
+      <div class="product-info">
+        <div class="product-name">${p.name}</div>
+        <div class="product-sub">${p.sub}</div>
+        <div class="product-price">KES ${p.price.toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
-// Create product card
-function createProductCard(product) {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    
-    const cartItem = cart.find(item => item.id === product.id);
-    const quantity = cartItem ? cartItem.quantity : 0;
-    
-    // Calculate remaining stock
-    const stockInfo = product.stock.split('/');
-    const currentStock = parseInt(stockInfo[0]);
-    const totalStock = parseInt(stockInfo[1]);
-    const remainingStock = currentStock - quantity;
-    
-    card.innerHTML = `
-        <div class="product-actions">
-            <button class="product-action-btn add-product-btn" onclick="addToCart('${product.id}')" ${remainingStock <= 0 ? 'disabled' : ''}>
-                <i class="fas fa-plus"></i>
-            </button>
-            ${quantity > 0 ? `
-                <button class="product-action-btn remove-product-btn" onclick="removeFromCart('${product.id}')">
-                    <i class="fas fa-minus"></i>
-                </button>
-            ` : ''}
+// ─── CART ─────────────────────────────────────────────────
+function addToCart(id) {
+  const p = products.find(x => x.id === id);
+  if (!p || p.stock === 0) return;
+  const existing = cart.find(x => x.id === id);
+  if (existing) {
+    if (existing.qty >= p.stock) { toast('⚠ Max stock reached'); return; }
+    existing.qty++;
+  } else {
+    cart.push({ ...p, qty: 1 });
+  }
+  renderCart();
+  toast(`${p.emoji} ${p.name} added`);
+}
+
+function removeFromCart(id) {
+  cart = cart.filter(x => x.id !== id);
+  renderCart();
+}
+
+function changeQty(id, delta) {
+  const item = cart.find(x => x.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) removeFromCart(id);
+  else renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  discountAmt = 0;
+  document.getElementById('discountInput').value = '';
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  document.getElementById('cartCount').textContent = cart.reduce((s,i) => s+i.qty, 0);
+  if (!cart.length) {
+    container.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛍</div><div class="cart-empty-text">Cart is empty</div></div>`;
+  } else {
+    container.innerHTML = cart.map(item => `
+      <div class="cart-item">
+        <span class="cart-item-emoji">${item.emoji}</span>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-price">KES ${(item.price * item.qty).toLocaleString()}</div>
         </div>
-        <div class="product-image">${product.icon}</div>
-        <div class="product-name">${product.name}</div>
-        <div class="product-price">$${product.price.toFixed(2)}</div>
-        <div class="product-stock">Stock: ${remainingStock}/${totalStock}</div>
-        ${quantity > 0 ? `<div class="product-quantity">In Cart: ${quantity}</div>` : ''}
-    `;
-    
-    return card;
-}
-
-// Add to cart
-function addToCart(productId) {
-    const product = findProductById(productId);
-    if (!product) return;
-    
-    const existingItem = cart.find(item => item.id === productId);
-    const currentQuantity = existingItem ? existingItem.quantity : 0;
-    
-    // Check stock availability
-    const stockInfo = product.stock.split('/');
-    const totalStock = parseInt(stockInfo[1]);
-    
-    if (currentQuantity >= totalStock) {
-        showNotification('No more stock available!', 'error');
-        return;
-    }
-    
-    if (existingItem) {
-        existingItem.quantity += 1;
-        existingItem.subtotal = existingItem.price * existingItem.quantity;
-    } else {
-        cart.push({
-            ...product,
-            quantity: 1,
-            subtotal: product.price
-        });
-    }
-    
-    updateCartDisplay();
-    if (currentSubcategory) {
-        renderProducts(); // Refresh product display to show updated quantities
-    }
-    showNotification(`${product.name} added to cart`);
-}
-
-// Remove from cart
-function removeFromCart(productId) {
-    const existingItem = cart.find(item => item.id === productId);
-    
-    if (existingItem) {
-        if (existingItem.quantity > 1) {
-            existingItem.quantity -= 1;
-            existingItem.subtotal = existingItem.price * existingItem.quantity;
-        } else {
-            cart = cart.filter(item => item.id !== productId);
-        }
-        
-        updateCartDisplay();
-        if (currentSubcategory) {
-            renderProducts(); // Refresh product display to show updated quantities
-        }
-        showNotification('Item updated in cart');
-    }
-}
-
-// Find product by ID
-function findProductById(productId) {
-    for (const category of Object.values(beautyShopData)) {
-        for (const subcategory of Object.values(category.subcategories)) {
-            const product = subcategory.items.find(item => item.id === productId);
-            if (product) return product;
-        }
-    }
-    return null;
-}
-
-// Update cart display
-function updateCartDisplay() {
-    cartList.innerHTML = '';
-    
-    cart.forEach(item => {
-        const cartItem = createCartItem(item);
-        cartList.appendChild(cartItem);
-    });
-    
-    updateOrderSummary();
-}
-
-// Create cart item
-function createCartItem(item) {
-    const cartItem = document.createElement('div');
-    cartItem.className = 'cart-item';
-    cartItem.innerHTML = `
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-price">$${item.price.toFixed(2)}</div>
-        <div class="cart-item-qty">
-            <button class="qty-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
-            <span>${item.quantity}</span>
-            <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+        <div class="qty-ctrl">
+          <div class="qty-btn" onclick="changeQty(${item.id},-1)">−</div>
+          <span class="qty-num">${item.qty}</span>
+          <div class="qty-btn" onclick="changeQty(${item.id},1)">+</div>
         </div>
-        <div class="cart-item-subtotal">$${item.subtotal.toFixed(2)}</div>
-        <div class="remove-item" onclick="removeItemFromCart('${item.id}')">
-            <i class="fas fa-times"></i>
-        </div>
-    `;
-    
-    return cartItem;
+        <div class="remove-btn" onclick="removeFromCart(${item.id})">✕</div>
+      </div>
+    `).join('');
+  }
+  recalc();
 }
 
-// Update quantity
-function updateQuantity(productId, change) {
-    const item = cart.find(item => item.id === productId);
-    if (item) {
-        item.quantity += change;
-        if (item.quantity <= 0) {
-            removeItemFromCart(productId);
-        } else {
-            item.subtotal = item.price * item.quantity;
-            updateCartDisplay();
-            if (currentSubcategory) {
-                renderProducts();
-            }
-        }
-    }
+function recalc() {
+  const sub = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  const dRaw = document.getElementById('discountInput').value.trim();
+  let disc = 0;
+  if (dRaw.endsWith('%')) {
+    disc = sub * (parseFloat(dRaw) / 100) || 0;
+  } else {
+    disc = parseFloat(dRaw) || 0;
+  }
+  disc = Math.min(disc, sub);
+  discountAmt = disc;
+  const afterDisc = sub - disc;
+  const vat = afterDisc * 0.16;
+  const total = afterDisc + vat;
+
+  document.getElementById('subtotal').textContent = `KES ${sub.toLocaleString()}`;
+  document.getElementById('discountRow').style.display = disc > 0 ? 'flex' : 'none';
+  document.getElementById('discountVal').textContent = `− KES ${disc.toLocaleString()}`;
+  document.getElementById('vatVal').textContent = `KES ${Math.round(vat).toLocaleString()}`;
+  document.getElementById('totalVal').textContent = `KES ${Math.round(total).toLocaleString()}`;
+  document.getElementById('checkoutBtn').disabled = cart.length === 0;
 }
 
-// Remove item completely from cart
-function removeItemFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
-    updateCartDisplay();
-    if (currentSubcategory) {
-        renderProducts();
-    }
-    showNotification('Item removed from cart');
+// ─── ADD / EDIT MODAL ────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Item';
+  document.getElementById('saveItemBtn').textContent = 'Save Item';
+  ['f_name','f_price','f_stock','f_emoji'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f_cat').value = '';
+  document.getElementById('f_sub').innerHTML = '<option value="">— Select —</option>';
+  document.getElementById('itemModal').style.display = 'flex';
 }
 
-// Update order summary
-function updateOrderSummary() {
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const totalPayable = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const discount = 0; // Can be implemented with discount logic
-    const shipping = 0; // Can be implemented with shipping logic
-    const grandTotal = totalPayable - discount + shipping;
-    
-    totalItemsElement.textContent = totalItems;
-    totalPayableElement.textContent = `$${totalPayable.toFixed(2)}`;
-    discountElement.textContent = `$${discount.toFixed(2)}`;
-    shippingElement.textContent = `$${shipping.toFixed(2)}`;
-    grandTotalElement.textContent = `$${grandTotal.toFixed(2)}`;
+function openEditModal(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Item';
+  document.getElementById('saveItemBtn').textContent = 'Update Item';
+  document.getElementById('f_name').value = p.name;
+  document.getElementById('f_price').value = p.price;
+  document.getElementById('f_stock').value = p.stock;
+  document.getElementById('f_emoji').value = p.emoji;
+  document.getElementById('f_cat').value = p.cat;
+  updateSubcats();
+  setTimeout(() => document.getElementById('f_sub').value = p.sub, 10);
+  document.getElementById('itemModal').style.display = 'flex';
 }
 
-// Handle search
-function handleSearch() {
-    if (currentSubcategory) {
-        currentPage = 1;
-        renderProducts();
-    }
+function closeItemModal() {
+  document.getElementById('itemModal').style.display = 'none';
 }
 
-function clearSearch() {
-    searchInput.value = '';
-    if (currentSubcategory) {
-        currentPage = 1;
-        renderProducts();
-    }
-}
-
-function updatePagination(totalItems) {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const pagination = document.querySelector('.pagination');
-    
-    // Update page buttons
-    const pageButtons = pagination.querySelectorAll('.page-btn:not(:first-child):not(:last-child)');
-    pageButtons.forEach((btn, index) => {
-        const pageNum = index + 1;
-        btn.textContent = pageNum;
-        btn.classList.toggle('active', pageNum === currentPage);
-        btn.style.display = pageNum <= totalPages ? 'block' : 'none';
+function updateSubcats() {
+  const cat = document.getElementById('f_cat').value;
+  const sub = document.getElementById('f_sub');
+  sub.innerHTML = '<option value="">— Select —</option>';
+  if (cat && SUBCATS[cat]) {
+    SUBCATS[cat].forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      sub.appendChild(o);
     });
-    
-    // Update navigation buttons
-    const prevBtn = pagination.querySelector('.fa-chevron-left').parentElement;
-    const nextBtn = pagination.querySelector('.fa-chevron-right').parentElement;
-    
-    prevBtn.disabled = currentPage === 1;
-    nextBtn.disabled = currentPage === totalPages;
-    
-    // Add click handlers
-    prevBtn.onclick = () => {
-        if (currentPage > 1) {
-            currentPage--;
-            renderProducts();
-        }
-    };
-    
-    nextBtn.onclick = () => {
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderProducts();
-        }
-    };
-    
-    // Add page number click handlers
-    pageButtons.forEach((btn, index) => {
-        btn.onclick = () => {
-            currentPage = index + 1;
-            renderProducts();
-        };
-    });
+  }
 }
 
-// Handle cancel
-function handleCancel() {
-    if (cart.length === 0) {
-        showNotification('Cart is already empty!', 'info');
-        return;
-    }
-    
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    
-    if (confirm(`Cancel Order\n\nAre you sure you want to remove all ${totalItems} items from the cart?\n\nThis action cannot be undone.`)) {
-        cart = [];
-        updateCartDisplay();
-        if (currentSubcategory) {
-            renderProducts();
-        }
-        showNotification('All items removed from cart', 'info');
-        
-        // Reset customer selection
-        document.getElementById('customer').value = '';
-    }
+function saveItem() {
+  const name = document.getElementById('f_name').value.trim();
+  const cat = document.getElementById('f_cat').value;
+  const sub = document.getElementById('f_sub').value;
+  const price = parseFloat(document.getElementById('f_price').value);
+  const stock = parseInt(document.getElementById('f_stock').value);
+  const emoji = document.getElementById('f_emoji').value.trim() || '🏷';
+
+  if (!name || !cat || !sub || isNaN(price) || isNaN(stock)) {
+    toast('⚠ Please fill all fields'); return;
+  }
+
+  if (editingId) {
+    const p = products.find(x => x.id === editingId);
+    Object.assign(p, { name, cat, sub, price, stock, emoji });
+    toast(`✓ ${name} updated`);
+  } else {
+    products.push({ id: nextId++, name, cat, sub, price, stock, emoji });
+    toast(`✓ ${name} added`);
+  }
+
+  closeItemModal();
+  filterProducts();
+  if (document.getElementById('inventoryView').classList.contains('active')) renderInventoryTable();
 }
 
-// Handle checkout
-function handleCheckout() {
-    if (cart.length === 0) {
-        showNotification('Cart is empty!', 'error');
-        return;
-    }
-    
-    const total = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const customer = document.getElementById('customer').value || 'Walk-in Customer';
-    
-    // Show payment confirmation dialog
-    if (confirm(`Confirm Payment\n\nCustomer: ${customer}\nTotal Amount: $${total.toFixed(2)}\n\nProceed with payment?`)) {
-        // Simulate payment processing
-        showNotification('Processing payment...', 'info');
-        
-        // Disable checkout button during processing
-        const checkoutBtn = document.getElementById('checkoutBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        checkoutBtn.disabled = true;
-        cancelBtn.disabled = true;
-        checkoutBtn.textContent = 'Processing...';
-        
-        setTimeout(() => {
-            // Generate receipt
-            generateReceipt();
-            
-            // Show success message
-            showNotification(`Payment successful! Total: $${total.toFixed(2)}`, 'success');
-            
-            // Clear cart
-            cart = [];
-            updateCartDisplay();
-            if (currentSubcategory) {
-                renderProducts();
-            }
-            
-            // Re-enable buttons
-            checkoutBtn.disabled = false;
-            cancelBtn.disabled = false;
-            checkoutBtn.innerHTML = '<i class="fas fa-credit-card"></i> Process Payment';
-            
-            // Reset customer selection
-            document.getElementById('customer').value = '';
-            
-        }, 2000);
-    }
+function deleteProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Remove "${p.name}" from inventory?`)) return;
+  products = products.filter(x => x.id !== id);
+  cart = cart.filter(x => x.id !== id);
+  filterProducts();
+  renderCart();
+  if (document.getElementById('inventoryView').classList.contains('active')) renderInventoryTable();
+  toast(`✓ ${p.name} removed`);
 }
 
-// Generate receipt
-function generateReceipt() {
-    const receipt = {
-        date: new Date().toLocaleString(),
-        items: cart,
-        total: cart.reduce((sum, item) => sum + item.subtotal, 0),
-        customer: document.getElementById('customer').value 
-    };
-    
-    console.log('Receipt:', receipt);
-    
-    // Create a formatted receipt for display
-    let receiptText = `
-=== BEAUTY SHOP RECEIPT ===
-Date: ${receipt.date}
-Customer: ${receipt.customer}
-Transaction ID: ${generateTransactionId()}
-
-ITEMS:
-`;
-    
-    receipt.items.forEach(item => {
-        receiptText += `${item.name} x${item.quantity} - $${item.subtotal.toFixed(2)}\n`;
-    });
-    
-    receiptText += `
-TOTAL: $${receipt.total.toFixed(2)}
-========================
-Thank you for your purchase!
-`;
-    
-    // Show receipt in alert (in real app, this would be sent to printer)
-    alert(receiptText);
-    
-    // In a real application, you would send this to a printer or save to database
+// ─── PAYMENT ─────────────────────────────────────────────
+function openPayment() {
+  const total = getTotal();
+  document.getElementById('payAmount').textContent = Math.round(total).toLocaleString();
+  document.getElementById('cashTendered').value = '';
+  document.getElementById('changeVal').textContent = 'KES 0.00';
+  buildNumpad();
+  document.getElementById('paymentModal').style.display = 'flex';
+  selectPayMethod('cash');
 }
 
-// Generate transaction ID
-function generateTransactionId() {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    return `TXN-${timestamp}-${random}`;
+function closePayment() {
+  document.getElementById('paymentModal').style.display = 'none';
 }
 
-// Show notification
-function showNotification(message, type = 'success') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        z-index: 1000;
-        animation: slideIn 0.3s ease-out;
-        background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-in';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
+function selectPayMethod(m) {
+  payMethod = m;
+  ['cash','card','mpesa'].forEach(x => {
+    document.getElementById(`pm_${x}`).classList.toggle('active', x === m);
+    const sec = document.getElementById(`${x}Section`);
+    if (sec) sec.classList.toggle('visible', x === m);
+  });
 }
 
-// Add CSS animations for notifications
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    .product-quantity {
-        font-size: 0.8rem;
-        color: #27ae60;
-        font-weight: 600;
-        margin-top: 5px;
-    }
-    
-    .back-button {
-        grid-column: 1 / -1;
-        margin-bottom: 20px;
-    }
-`;
-document.head.appendChild(style);
+function getTotal() {
+  const sub = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  const afterDisc = sub - discountAmt;
+  return afterDisc * 1.16;
+}
 
-// Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
+function calcChange() {
+  const total = getTotal();
+  const tendered = parseFloat(document.getElementById('cashTendered').value) || 0;
+  const change = tendered - total;
+  document.getElementById('changeVal').textContent =
+    `KES ${Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+  document.getElementById('changeVal').style.color = change >= 0 ? 'var(--success)' : 'var(--danger)';
+}
+
+function buildNumpad() {
+  const np = document.getElementById('numpad');
+  const keys = ['1','2','3','4','5','6','7','8','9','0','⌫'];
+  np.innerHTML = keys.map((k,i) =>
+    `<button class="numpad-btn${k==='0'?' zero':''}" onclick="numpadPress('${k}')">${k}</button>`
+  ).join('');
+}
+
+function numpadPress(k) {
+  const inp = document.getElementById('cashTendered');
+  if (k === '⌫') inp.value = inp.value.slice(0,-1);
+  else inp.value += k;
+  calcChange();
+}
+
+function completePayment() {
+  if (payMethod === 'cash') {
+    const total = getTotal();
+    const tendered = parseFloat(document.getElementById('cashTendered').value) || 0;
+    if (tendered < total) { toast('⚠ Insufficient cash tendered'); return; }
+  }
+  // Deduct stock
+  cart.forEach(item => {
+    const p = products.find(x => x.id === item.id);
+    if (p) p.stock -= item.qty;
+  });
+  closePayment();
+  showSuccess();
+}
+
+function showSuccess() {
+  const customer = document.getElementById('customerName').value.trim() || 'Walk-in Customer';
+  const lines = cart.map(i => `<div class="receipt-line"><span>${i.emoji} ${i.name} ×${i.qty}</span><span>KES ${(i.price*i.qty).toLocaleString()}</span></div>`).join('');
+  const total = getTotal();
+  document.getElementById('receiptLines').innerHTML = lines + `
+    <div class="receipt-line total-line"><span>TOTAL PAID</span><span>KES ${Math.round(total).toLocaleString()}</span></div>
+  `;
+  document.getElementById('successSub').textContent = `Thank you, ${customer}!`;
+  document.getElementById('successModal').style.display = 'flex';
+}
+
+function newTransaction() {
+  document.getElementById('successModal').style.display = 'none';
+  clearCart();
+  document.getElementById('customerName').value = '';
+  filterProducts();
+}
+
+// ─── INVENTORY TABLE ─────────────────────────────────────
+function renderInventoryTable() {
+  const tbody = document.getElementById('invTableBody');
+  tbody.innerHTML = products.map(p => `
+    <tr>
+      <td class="td-name">${p.emoji} ${p.name}</td>
+      <td><span class="badge badge-cat">${p.cat}</span></td>
+      <td><span class="badge badge-sub">${p.sub}</span></td>
+      <td class="td-price">KES ${p.price.toLocaleString()}</td>
+      <td style="color:${p.stock<=3?'var(--danger)':'var(--text-dim)'}">${p.stock}</td>
+      <td><div class="td-actions">
+        <div class="icon-btn" onclick="openEditModal(${p.id})" title="Edit">✏</div>
+        <div class="icon-btn del" onclick="deleteProduct(${p.id})" title="Delete">✕</div>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+// ─── TOAST ───────────────────────────────────────────────
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span class="toast-dot"></span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+// ─── INIT ────────────────────────────────────────────────
+renderCatChips();
+renderSubcats();
+filterProducts();

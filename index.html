@@ -1,148 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beauty Shop POS</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TINAH COSMETICS — Point of Sale</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header class="main-header">
-            <div class="header-content">
-                <h1>Beauty Shop POS</h1>
-                <p>Modern Beauty Shop Point of Sale for Fashion & Cosmetics</p>
-            </div>
-            <div class="header-icon">
-                <i class="fas fa-square"></i>
-            </div>
-        </header>
 
-        <!-- Main POS Interface -->
-        <div class="pos-panel">
-            <!-- Top Bar -->
-            <div class="top-bar">
-                <div class="logo">
-                    <span>BEAUTY SHOP</span>
-                </div>
-                <div class="search-bar">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search Product or Order ID here">
-                    <i class="fas fa-times"></i>
-                </div>
-                <div class="user-controls">
-                    <div class="user-info">
-                        <i class="fas fa-user"></i>
-                        <span>Welcome, Johnny!</span>
-                    </div>
-                    <i class="fas fa-bell"></i>
-                    <i class="fas fa-cog"></i>
-                    <i class="fas fa-ellipsis-v"></i>
-                </div>
-            </div>
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">TINAH <span>COSMETICS</span></div>
+  <div class="topbar-center">
+    <button class="tab-btn active" onclick="switchView('pos')">POS</button>
+    <button class="tab-btn" onclick="switchView('inventory')">Inventory</button>
+  </div>
+  <div class="topbar-right">
+    <div id="clock" style="font-size:11px;letter-spacing:0.05em;"></div>
+    <div class="cashier-badge"><span class="cashier-dot"></span>Cashier — Vivian</div>
+  </div>
+</div>
 
-            <!-- Main Content -->
-            <div class="main-content">
-                <!-- Product Display Area -->
-                <div class="product-area">
-                    <!-- Tabs -->
-                    <div class="tabs">
-                        <button class="tab-btn active" data-tab="clothes">Clothes</button>
-                        <button class="tab-btn" data-tab="cosmetics">Cosmetics</button>
-                        <button class="tab-btn" data-tab="shoes">Shoes</button>
-                    </div>
-
-                    <!-- Category Grid -->
-                    <div class="category-grid" id="categoryGrid">
-                        <!-- Categories will be populated by JavaScript -->
-                    </div>
-
-                    <!-- Product Grid -->
-                    <div class="product-grid" id="productGrid" style="display: none;">
-                        <!-- Products will be populated by JavaScript -->
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="pagination">
-                        <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
-                        <button class="page-btn active">1</button>
-                        <button class="page-btn">2</button>
-                        <button class="page-btn">3</button>
-                        <button class="page-btn">4</button>
-                        <button class="page-btn">5</button>
-                        <button class="page-btn">6</button>
-                        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-
-                <!-- Shopping Cart Sidebar -->
-                <div class="cart-sidebar">
-                    <!-- Customer Selection -->
-                    <div class="customer-select">
-                        <label for="customer">Select a Customer</label>
-                        <select id="customer">
-                            <option value="">Choose customer...</option>
-                            <option value="walk-in">Walk-in Customer</option>
-                            <option value="regular">Regular Customer</option>
-                            <option value="vip">VIP Customer</option>
-                        </select>
-                    </div>
-
-                    <!-- Cart Items -->
-                    <div class="cart-items">
-                        <div class="cart-header">
-                            <span>Product</span>
-                            <span>Price</span>
-                            <span>Qty</span>
-                            <span>Subtotal</span>
-                        </div>
-                        <div class="cart-list" id="cartList">
-                            <!-- Cart items will be populated by JavaScript -->
-                        </div>
-                    </div>
-
-                    <!-- Order Summary -->
-                    <div class="order-summary">
-                        <div class="summary-row">
-                            <span>Total Items:</span>
-                            <span id="totalItems">0</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>Total Payable:</span>
-                            <span id="totalPayable">$0.00</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>Discount:</span>
-                            <span id="discount">$0.00</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>Shipping:</span>
-                            <span id="shipping">$0.00</span>
-                        </div>
-                        <div class="summary-row grand-total">
-                            <span>Grand Total:</span>
-                            <span id="grandTotal">$0.00</span>
-                        </div>
-                    </div>
-
-                    <!-- Cart Action Buttons -->
-                    <div class="cart-actions">
-                        <button class="cancel-btn" id="cancelBtn">
-                            <i class="fas fa-trash"></i>
-                            Cancel All
-                        </button>
-                        <button class="checkout-btn" id="checkoutBtn">
-                            <i class="fas fa-credit-card"></i>
-                            Process Payment
-                        </button>
-                    </div>
-                </div>
-            </div>
+<!-- POS VIEW -->
+<div id="posView" class="main">
+  <!-- CATALOGUE -->
+  <div class="catalogue">
+    <div class="catalogue-header">
+      <div class="search-row">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search-input" id="searchInput" placeholder="Search products…" oninput="filterProducts()">
         </div>
+        <button class="btn-gold" onclick="openAddModal()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add Item
+        </button>
+      </div>
+      <div class="cats" id="catChips"></div>
     </div>
+    <div class="subcat-strip" id="subcatStrip"></div>
+    <div class="products-area">
+      <div class="products-grid" id="productsGrid"></div>
+    </div>
+  </div>
 
-    <script src="script.js"></script>
+  <!-- CART -->
+  <div class="cart-panel">
+    <div class="cart-header">
+      <div class="cart-title">Order</div>
+      <span class="cart-count" id="cartCount">0</span>
+    </div>
+    <div class="cart-customer">
+      <input class="customer-input" placeholder="Customer name (optional)…" id="customerName">
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty">
+        <div class="cart-empty-icon">🛍</div>
+        <div class="cart-empty-text">Cart is empty</div>
+      </div>
+    </div>
+    <div class="cart-footer">
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span class="val" id="subtotal">KES 0</span>
+      </div>
+      <div class="discount-row">
+        <input class="discount-input" id="discountInput" placeholder="Discount % or amount" oninput="recalc()">
+        <button class="btn-outline" onclick="recalc()">Apply</button>
+      </div>
+      <div class="summary-row" id="discountRow" style="display:none">
+        <span>Discount</span>
+        <span class="val" id="discountVal" style="color:var(--success)">— KES 0</span>
+      </div>
+      <div class="summary-row">
+        <span>VAT (16%)</span>
+        <span class="val" id="vatVal">KES 0</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total</span>
+        <span class="val" id="totalVal">KES 0</span>
+      </div>
+      <button class="checkout-btn" id="checkoutBtn" onclick="openPayment()" disabled>Proceed to Payment</button>
+      <button class="clear-btn" onclick="clearCart()">Clear Cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY VIEW -->
+<div id="inventoryView">
+  <div class="inv-header">
+    <div class="inv-title">Inventory Management</div>
+    <button class="btn-gold" onclick="openAddModal()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      Add Item
+    </button>
+  </div>
+  <div class="inv-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Category</th>
+          <th>Sub-Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="invTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="itemModal" style="display:none" onclick="e => e.stopPropagation()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">New Item</div>
+      <button class="modal-close" onclick="closeItemModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Item Name</label>
+        <input class="form-input" id="f_name" placeholder="e.g. Silk Blouse">
+      </div>
+      <div class="form-row-split">
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="f_cat" onchange="updateSubcats()">
+            <option value="">— Select —</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Shoes">Shoes</option>
+            <option value="Cosmetics">Cosmetics</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">Sub-Category</label>
+          <select class="form-select" id="f_sub">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-split" style="margin-top:14px">
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">Price (KES)</label>
+          <input class="form-input" id="f_price" type="number" placeholder="0.00">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">Stock Qty</label>
+          <input class="form-input" id="f_stock" type="number" placeholder="0">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:14px">
+        <label class="form-label">Emoji Icon</label>
+        <input class="form-input" id="f_emoji" placeholder="e.g. 👗 👠 💄">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeItemModal()">Cancel</button>
+      <button class="btn-gold" id="saveItemBtn" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="overlay" id="paymentModal" style="display:none">
+  <div class="modal payment-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Payment</div>
+      <button class="modal-close" onclick="closePayment()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="amount-display">
+        <div class="amount-label">Amount Due</div>
+        <div class="amount-value"><span class="amount-currency">KES </span><span id="payAmount">0</span></div>
+      </div>
+      <div class="pay-methods">
+        <div class="pay-method active" id="pm_cash" onclick="selectPayMethod('cash')">
+          <div class="pay-method-icon">💵</div>
+          <div class="pay-method-name">Cash</div>
+        </div>
+        <div class="pay-method" id="pm_card" onclick="selectPayMethod('card')">
+          <div class="pay-method-icon">💳</div>
+          <div class="pay-method-name">Card</div>
+        </div>
+        <div class="pay-method" id="pm_mpesa" onclick="selectPayMethod('mpesa')">
+          <div class="pay-method-icon">📱</div>
+          <div class="pay-method-name">M-Pesa</div>
+        </div>
+      </div>
+      <div class="cash-section visible" id="cashSection">
+        <label class="form-label">Cash Tendered</label>
+        <input class="form-input" id="cashTendered" type="number" placeholder="Enter amount" oninput="calcChange()" style="font-size:16px; padding:12px;">
+        <div class="numpad" id="numpad"></div>
+        <div class="change-display">
+          <span style="font-size:11px; letter-spacing:0.08em;">CHANGE</span>
+          <span class="change-val" id="changeVal">KES 0.00</span>
+        </div>
+      </div>
+      <div class="cash-section" id="cardSection">
+        <div style="text-align:center;padding:24px 0;">
+          <div style="font-size:48px;margin-bottom:12px;">💳</div>
+          <div style="font-size:12px;color:var(--text-dim);letter-spacing:0.1em;">Swipe, insert, or tap your card</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:8px;letter-spacing:0.05em;">Waiting for terminal…</div>
+        </div>
+      </div>
+      <div class="cash-section" id="mpesaSection">
+        <div class="form-row">
+          <label class="form-label">M-Pesa Phone Number</label>
+          <input class="form-input" id="mpesaPhone" placeholder="07XX XXX XXX">
+        </div>
+        <div style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em;text-align:center;padding:10px 0;">Customer will receive STK push prompt</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePayment()">Cancel</button>
+      <button class="btn-gold" onclick="completePayment()" style="padding: 10px 28px;">
+        Confirm Payment ✓
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="overlay" id="successModal" style="display:none">
+  <div class="modal success-modal" onclick="event.stopPropagation()">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Payment Complete</div>
+    <div class="success-sub" id="successSub">Transaction processed successfully</div>
+    <div class="modal-body" style="padding-top:0">
+      <div class="receipt-lines" id="receiptLines"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn-gold" onclick="newTransaction()" style="padding:11px 32px;">New Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+ <script src="script.js"></script>
 </body>
 </html>
