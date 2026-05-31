@@ -642,9 +642,9 @@ function getSeedData() {
   return {
     store: { name:"TINAH COSMETICS", cashier:"Vivian", currency:"KES", vat_rate:0.16 },
     categories: [
-      { id:"clothing", label:"Clothing", subcategories:["Tops & Blouses","Trousers & Pants","Dresses","Skirts","Jackets & Coats","Suits","Knitwear","Activewear"] },
+      { id:"clothing", label:"Clothing", subcategories:["Tops & Blouses","Trousers & Pants","Dresses","Skirts","Jackets & Coats","Suits","Knitwear","Activewear","Shorts"] },
       { id:"shoes",    label:"Shoes",    subcategories:["Heels","Flats","Sneakers","Boots","Sandals","Loafers","Mules"] },
-      { id:"cosmetics",label:"Cosmetics",subcategories:["Soaps","Creams","Lotions","Serums","Foundations","Perfumes","Lip Colour","Eye Makeup"] }
+      { id:"cosmetics",label:"Cosmetics",subcategories:["Soaps","Creams","Lotions","Serums","Foundations","Perfumes","Lip Colour","Eye Makeup","Hair care","Face care"] }
     ],
     products: [
       { id:1,  name:"Silk Wrap Blouse",    category:"clothing", subcategory:"Tops & Blouses",  price:4200,  stock:8,  sku:"CLO-001", image_url:"https://img.lilysilk.com/cdn-cgi/image/width=1800,height=2700,quality=80,fit=cover/media/catalog/product/N9962/03BU/4.jpg", emoji:"👗" },
@@ -666,29 +666,29 @@ function getSeedData() {
       { id:17, name:"Cashmere Knit Sweater", category:"clothing", subcategory:"Sweaters & Knitwear", price:9800, stock:6, sku:"CLO-007", image_url:"https://www.jennikayne.com/cdn/shop/files/cashmere-amelia-crewneck-warm-sand-2.jpg?v=1739307672" },
 { id:18, name:"Denim Jacket", category:"clothing", subcategory:"Jackets & Coats", price:7600, stock:9, sku:"CLO-008", image_url:"https://hips.hearstapps.com/hmg-prod/images/gettyimages-2133930650-66aaf97f8bf25.jpg?crop=0.659xw:1.00xh;0.171xw,0&resize=640:*", emoji:"🧥" },
 { id:19, name:"Pleated Maxi Dress", category:"clothing", subcategory:"Dresses", price:9200, stock:4, sku:"CLO-009", image_url:"https://www.thedressoutlet.com/cdn/shop/files/3147_NAVY_A1.jpg?v=1746660710" },
-{ id:20, name:"Tailored Jumpsuit", category:"clothing", subcategory:"Jumpsuits", price:10800, stock:5, sku:"CLO-010", image_url:"https://mediahub.prettylittlething.com/cno7236_black_xl?qlt=70&w=480&h=720&dpr=1&fit=cvr" },
+{ id:20, name:"Tailored Jumpsuit", category:"clothing", subcategory:"Suits", price:10800, stock:5, sku:"CLO-010", image_url:"https://mediahub.prettylittlething.com/cno7236_black_xl?qlt=70&w=480&h=720&dpr=1&fit=cvr" },
 { id:21, name:"Leather Sneakers", category:"shoes", subcategory:"Sneakers", price:9500, stock:10, sku:"SHO-005", image_url:"https://cdn.hophopshop.com/productImages/28093/medium/Tezza-4141.jpg" },
 { id:22, name:"Pointed-Toe Flats", category:"shoes", subcategory:"Flats", price:5400, stock:12, sku:"SHO-006", image_url:"https://venstore.co.ke/vendor/uploads/women_fashion/6780d14ef3aa85.53240029.jpg" },
 { id:23, name:"Vitamin C Face Serum", category:"cosmetics", subcategory:"Serums", price:3900, stock:14, sku:"COS-007", image_url:"https://m.media-amazon.com/images/I/615YQQ63jfL._AC_UF1000,1000_QL80_.jpg" },
 { id:24, name:"Lavender Night Cream", category:"cosmetics", subcategory:"Creams", price:2600, stock:16, sku:"COS-008", image_url:"https://quincehoneyfarm.co.uk/wp-content/uploads/2022/12/Night-Cream3.jpg" },
 { id:25, name:"Coconut Hair Mask", category:"cosmetics", subcategory:"Hair Care", price:1800, stock:22, sku:"COS-009", image_url:"https://lk.spaceylon.com/cdn/shop/files/Virgin_Coconut_Hair_Treatment_Masque_150ml_S1.jpg?v=1754476152&width=1445" },
-{ id:26, name:"Matte Finish Foundation", category:"cosmetics", subcategory:"Makeup", price:3200, stock:13, sku:"COS-010", image_url:"https://media6.ppl-media.com/tr:h-235,w-235,c-at_max,dpr-2/static/img/product/356169/faces-canada-weightless-matte-finish-foundation-natural-03-15ml-i-anti-ageing-i-non-clog-pores-i-lightweight-i-olive-seed-oil-i-grape-extract-i-shea-butter-i-cruelty-free-i-paraben-free_5_display_1708507007_6960c72f.jpg" },
-{ id:27, name:"Wool Blend Blazer", category:"clothing", subcategory:"Blazers", price:11500, stock:6, sku:"CLO-011", image_url:"https://dtcralphlauren.scene7.com/is/image/PoloGSI/s7-AI211952179003_alternate10?$rl_4x5_pdp$"},
-{ id:28, name:"High-Waist Jeans", category:"clothing", subcategory:"Pants", price:6800, stock:11, sku:"CLO-012", image_url:"https://ke.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/11/8911623/1.jpg?5507" },
-{ id:29, name:"Oversized Hoodie", category:"clothing", subcategory:"Hoodies", price:5900, stock:15, sku:"CLO-013", image_url:"https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=400&q=80", emoji:"🧥" },
-{ id:30, name:"Silk Blouse", category:"clothing", subcategory:"Tops", price:7400, stock:8, sku:"CLO-014", image_url:"https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400&q=80", emoji:"👚" },
-{ id:31, name:"Cargo Shorts", category:"clothing", subcategory:"Shorts", price:4500, stock:18, sku:"CLO-015", image_url:"https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?w=400&q=80", emoji:"🩳" },
+{ id:26, name:"Matte Finish Foundation", category:"cosmetics", subcategory:"Foundations", price:3200, stock:13, sku:"COS-010", image_url:"https://media6.ppl-media.com/tr:h-235,w-235,c-at_max,dpr-2/static/img/product/356169/faces-canada-weightless-matte-finish-foundation-natural-03-15ml-i-anti-ageing-i-non-clog-pores-i-lightweight-i-olive-seed-oil-i-grape-extract-i-shea-butter-i-cruelty-free-i-paraben-free_5_display_1708507007_6960c72f.jpg" },
+{ id:27, name:"Wool Blend Blazer", category:"clothing", subcategory:"Jackets & Coats", price:11500, stock:6, sku:"CLO-011", image_url:"https://dtcralphlauren.scene7.com/is/image/PoloGSI/s7-AI211952179003_alternate10?$rl_4x5_pdp$"},
+{ id:28, name:"High-Waist Jeans", category:"clothing", subcategory:"Trousers & Pants", price:6800, stock:11, sku:"CLO-012", image_url:"https://ke.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/11/8911623/1.jpg?5507" },
+{ id:29, name:"Oversized Hoodie", category:"clothing", subcategory:"Jackets & Coats", price:5900, stock:15, sku:"CLO-013", image_url:"https://m.media-amazon.com/images/I/61hqvmjloRL._AC_SL1500_.jpg" },
+{ id:30, name:"Satin Striped shirt", category:"clothing", subcategory:"Tops & Blouses", price:7400, stock:8, sku:"CLO-014", image_url:"https://street9.com/cdn/shop/products/SHR00008060_1_56f1c445-9251-410a-b0ae-387a5c15fe49.jpg?v=1751977069"},
+{ id:31, name:"Cargo Shorts", category:"clothing", subcategory:"Shorts", price:4500, stock:18, sku:"CLO-015", image_url:"https://image.kilimall.com/kenya/shop/store/goods/9438/2023/06/16874280107285143fef066f947369b6312682f231487.jpg" },
 
-{ id:32, name:"Running Shoes", category:"shoes", subcategory:"Sports Shoes", price:8700, stock:9, sku:"SHO-007", image_url:"https://images.unsplash.com/photo-1543508282-6319a3e2621f?w=400&q=80", emoji:"🏃" },
-{ id:33, name:"Chelsea Boots", category:"shoes", subcategory:"Boots", price:12800, stock:5, sku:"SHO-008", image_url:"https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=400&q=80", emoji:"🥾" },
-{ id:34, name:"Canvas Slip-Ons", category:"shoes", subcategory:"Casual Shoes", price:4200, stock:17, sku:"SHO-009", image_url:"https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=400&q=80", emoji:"👟" },
-{ id:35, name:"Strappy Heels", category:"shoes", subcategory:"Heels", price:7900, stock:7, sku:"SHO-010", image_url:"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80", emoji:"👠" },
+{ id:32, name:"High Heels Sandals", category:"shoes", subcategory:"Heels", price:8700, stock:9, sku:"SHO-007", image_url:"https://image.made-in-china.com/2f0j00ecKUZSCqPjbs/New-Design-Women-High-Heel-Sandals-Size-12-Fashion-Ladies-Shoes-High-Heels.webp" },
+{ id:33, name:"Chelsea Boots", category:"shoes", subcategory:"Boots", price:12800, stock:5, sku:"SHO-008", image_url:"https://www.bocage.eu/media/catalog/product/7/7/779920_10.jpg?optimize=medium&bg-color=255,255,255&fit=bounds&height=1820&width=1560&canvas=1560:1820" },
+{ id:34, name:"Canvas Slip-Ons", category:"shoes", subcategory:"Sneakers", price:4200, stock:17, sku:"SHO-009", image_url:"https://images-na.ssl-images-amazon.com/images/I/814+Gb1oPQL._UL500_.jpg" },
+{ id:35, name:"Strappy Heels", category:"shoes", subcategory:"Heels", price:7900, stock:7, sku:"SHO-010", image_url:"https://i5.walmartimages.com/seo/BLTIBY-Women-s-Rhinestone-Strappy-Spiral-Ankle-Strap-Low-Chunky-Block-Heel-Sandals-Fashion-Elegant-Open-Toe-Shoes-Black-36_50373d10-fcfc-44d1-b367-d13f25f4b743.b3fa160800d6c238e35a1bc7f2e1f548.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF"},
 
-{ id:36, name:"Hydrating Face Mist", category:"cosmetics", subcategory:"Face Care", price:2100, stock:20, sku:"COS-011", image_url:"https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&q=80", emoji:"💦" },
-{ id:37, name:"Rose Lip Balm", category:"cosmetics", subcategory:"Lip Care", price:950, stock:30, sku:"COS-012", image_url:"https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=400&q=80", emoji:"🌹" },
-{ id:38, name:"Charcoal Face Wash", category:"cosmetics", subcategory:"Cleansers", price:1700, stock:25, sku:"COS-013", image_url:"https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&q=80", emoji:"🖤" },
-{ id:39, name:"Argan Hair Oil", category:"cosmetics", subcategory:"Hair Care", price:2300, stock:19, sku:"COS-014", image_url:"https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&q=80", emoji:"✨" },
-{ id:40, name:"Waterproof Mascara", category:"cosmetics", subcategory:"Makeup", price:2800, stock:16, sku:"COS-015", image_url:"https://images.unsplash.com/photo-1631214540242-5d6a6c6d6b9e?w=400&q=80", emoji:"👁️" }
+{ id:36, name:"Hydrating Face Mist", category:"cosmetics", subcategory:"Face Care", price:2100, stock:20, sku:"COS-011", image_url:"https://media-dynamic.okendo.io/images/67cbc062-a861-42c3-933b-2470b85b3089/6010db3b-f9fe-4e7c-a44b-6441873075c1.jpg?d=1600x1600"},
+{ id:37, name:"Rose Lip Balm", category:"cosmetics", subcategory:"Lip Care", price:950, stock:30, sku:"COS-012", image_url:"https://tingd2c.com/cdn/shop/files/Artboard14_262619fc-09b0-4726-936c-b5404259f24d.png?v=1725365868" },
+{ id:38, name:"Charcoal Face Wash", category:"cosmetics", subcategory:"Face care", price:1700, stock:25, sku:"COS-013", image_url:"https://drrashel.co.ke/wp-content/uploads/Dr-Rashel-Kenya-photo1692956301-9.jpeg" },
+{ id:39, name:"Argan Hair Oil", category:"cosmetics", subcategory:"Hair care", price:2300, stock:19, sku:"COS-014", image_url:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmdfNx_8rrw60LDPzlREJw5UdAAlpOLQUuSQ&s" },
+{ id:40, name:"Waterproof Mascara", category:"cosmetics", subcategory:"Eye Makeup", price:2800, stock:16, sku:"COS-015", image_url:"https://d1ak51zwgmtslz.cloudfront.net/PRODUCTS_EN/8682536058360_9.jpg" }
     ]
   };
 }
