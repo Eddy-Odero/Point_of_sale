@@ -10,10 +10,15 @@ let editingId = null;
 let nextId = 100;
 let payMethod = 'cash';
 let discountAmt = 0;
-let currentImageData = ''; // base64 or URL
- 
-//  BOOT — load maison-data.json
+let currentImageData = '';
 
+// Active cashier session state
+let cashiers = [];
+let activeCashier = null;
+let activeSession = null;
+let allSessions = [];
+
+//  BOOT — load maison-data.json
 async function boot() {
   setLoadStatus('Loading product data…');
   try {
@@ -32,13 +37,14 @@ async function boot() {
   document.getElementById('loadScreen').style.opacity = '0';
   await delay(400);
   document.getElementById('loadScreen').style.display = 'none';
-  init();
+  showCashierPicker();
 }
 
 function ingestData(data) {
   storeConfig = data.store || {};
   categories = data.categories || [];
   products = data.products || [];
+  cashiers = data.cashiers || getDefaultCashiers();
   nextId = (Math.max(0, ...products.map(p => p.id)) + 1) || 100;
 }
 
@@ -49,15 +55,10 @@ function setLoadStatus(msg) {
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function init() {
-  // Apply store config
-  if (storeConfig.cashier) document.getElementById('cashierName').textContent = storeConfig.cashier;
   if (storeConfig.name) document.title = storeConfig.name + ' — POS';
   document.getElementById('vatLabel').textContent = Math.round((storeConfig.vat_rate || 0.16) * 100);
-
-  // Update banner
   document.getElementById('productCount').textContent = products.length;
-
-  // Populate category dropdowns
+  updateCashierBadge();
   populateCatSelects();
   renderCatChips();
   renderSubcats();
@@ -66,6 +67,13 @@ function init() {
   setInterval(updateClock, 1000);
 }
 
+function updateCashierBadge() {
+  if (!activeCashier) return;
+  document.getElementById('cashierName').textContent = activeCashier.name;
+  // Show end-shift button only for logged-in cashier
+  const endBtn = document.getElementById('endShiftBtn');
+  if (endBtn) endBtn.style.display = 'flex';
+}
 
 //  JSON I/O
 function triggerJsonLoad() {
@@ -124,7 +132,6 @@ function downloadJson() {
 }
 
 //  CLOCK
-
 function updateClock() {
   const now = new Date();
   document.getElementById('clock').textContent =
@@ -133,7 +140,6 @@ function updateClock() {
 }
 
 //  TABS
-
 function switchView(v) {
   document.getElementById('posView').classList.toggle('hidden', v !== 'pos');
   document.getElementById('inventoryView').classList.toggle('active', v === 'inventory');
@@ -202,7 +208,6 @@ function updateSubcats() {
 }
 
 //  PRODUCTS GRID
-
 function filterProducts() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const filtered = products.filter(p => {
@@ -250,7 +255,6 @@ function renderProducts(list) {
 }
 
 //  CART
-
 function addToCart(id) {
   const p = products.find(x => x.id === id);
   if (!p || p.stock === 0) return;
@@ -395,6 +399,7 @@ function clearImgPreview() {
 
 //  ADD / EDIT MODAL
 function openAddModal() {
+  if (!isManager()) { toast('⚠ Manager access required to add items'); return; }
   editingId = null;
   document.getElementById('modalTitle').textContent = 'New Item';
   document.getElementById('saveItemBtn').textContent = 'Save Item';
@@ -437,6 +442,7 @@ function closeItemModal() {
 }
 
 function saveItem() {
+  if (!isManager()) { toast('⚠ Manager access required to save changes'); return; }
   const name = document.getElementById('f_name').value.trim();
   const cat = document.getElementById('f_cat').value;
   const sub = document.getElementById('f_sub').value;
@@ -476,6 +482,7 @@ function saveItem() {
 }
 
 function deleteProduct(id) {
+  if (!isManager()) { toast('⚠ Manager access required'); return; }
   const p = products.find(x => x.id === id);
   if (!p) return;
   if (!confirm(`Remove "${p.name}" from inventory?`)) return;
@@ -489,7 +496,6 @@ function deleteProduct(id) {
 }
 
 //  INVENTORY TABLE
-
 function renderInventoryTable() {
   const q = (document.getElementById('invSearchInput')?.value || '').toLowerCase();
   const list = q
@@ -522,7 +528,6 @@ function renderInventoryTable() {
 }
 
 //  PAYMENT
-
 function getTotal() {
   const vr = storeConfig.vat_rate || 0.16;
   const sub = cart.reduce((s,i) => s + i.price * i.qty, 0);
@@ -584,11 +589,15 @@ function completePayment() {
     if (p) p.stock = Math.max(0, p.stock - item.qty);
   });
 
-  // Build transaction record
   const txn = buildTransaction();
   transactions.unshift(txn);
   lastTxnId = txn.id;
-
+  // Credit this sale to the active session
+  if (activeSession) {
+    activeSession.sales++;
+    activeSession.revenue += txn.total;
+    activeSession.discounts += txn.discount;
+  }
   closePayment();
   showSuccess();
 }
@@ -630,26 +639,32 @@ function toast(msg) {
 function getSeedData() {
   return {
     store: { name:"TINAH COSMETICS", cashier:"Vivian", currency:"KES", vat_rate:0.16 },
+    cashiers: [
+      { id:1, name:"Tinah",  pin:"1234", role:"manager"  },
+      { id:2, name:"Vivian",   pin:"2222", role:"cashier"  },
+      { id:3, name:"Grace",   pin:"3333", role:"cashier"  },
+      { id:4, name:"Eddy", pin:"4444", role:"manager"  }
+    ],
     categories: [
       { id:"clothing", label:"Clothing", subcategories:["Tops & Blouses","Trousers & Pants","Dresses","Skirts","Jackets & Coats","Suits","Knitwear","Activewear","Shorts"] },
       { id:"shoes",    label:"Shoes",    subcategories:["Heels","Flats","Sneakers","Boots","Sandals","Loafers","Mules"] },
       { id:"cosmetics",label:"Cosmetics",subcategories:["Soaps","Creams","Lotions","Serums","Foundations","Perfumes","Lip Colour","Eye Makeup","Hair care","Face care"] }
     ],
     products: [
-      { id:1,  name:"Silk Wrap Blouse",    category:"clothing", subcategory:"Tops & Blouses",  price:4200,  stock:8,  sku:"CLO-001", image_url:"https://img.lilysilk.com/cdn-cgi/image/width=1800,height=2700,quality=80,fit=cover/media/catalog/product/N9962/03BU/4.jpg" },
+      { id:1,  name:"Silk Wrap Blouse",    category:"clothing", subcategory:"Tops & Blouses",  price:4200,  stock:8,  sku:"CLO-001", image_url:"https://img.lilysilk.com/cdn-cgi/image/width=1800,height=2700,quality=80,fit=cover/media/catalog/product/N9962/03BU/4.jpg"},
       { id:2,  name:"High-Waist Trousers", category:"clothing", subcategory:"Trousers & Pants", price:5800,  stock:5,  sku:"CLO-002", image_url:"https://m.media-amazon.com/images/I/712gf22WfGL._AC_UY1000_.jpg" },
       { id:3,  name:"Floral Midi Dress",   category:"clothing", subcategory:"Dresses",          price:7500,  stock:3,  sku:"CLO-003", image_url:"https://i5.walmartimages.com/asr/5d2a59a5-cc00-4c31-bc3d-e96399c7c998.39897716b4ae0b580e59ea1497291283.jpeg" },
       { id:4,  name:"Wool Blend Coat",     category:"clothing", subcategory:"Jackets & Coats",  price:18500, stock:4,  sku:"CLO-004", image_url:"https://kaleidoscope.scene7.com/is/image/OttoUK/600w/Witt-Wool-Blend-Belted-Coat~H80467FRSP.jpg" },
       { id:5,  name:"Fitted Blazer",       category:"clothing", subcategory:"Suits",            price:12000, stock:6,  sku:"CLO-005", image_url:"https://media.mango.com/is/image/punto/27041294-99-002?wid=2048" },
       { id:6,  name:"A-Line Mini Skirt",   category:"clothing", subcategory:"Skirts",           price:3200,  stock:11, sku:"CLO-006", image_url:"https://m.media-amazon.com/images/I/61FiyfJK7XL._AC_SX466_.jpg" },
-      { id:7,  name:"Strappy Heels",       category:"shoes",    subcategory:"Heels",            price:8900,  stock:7,  sku:"SHO-001", image_url:"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80", },
+      { id:7,  name:"Strappy Heels",       category:"shoes",    subcategory:"Heels",            price:8900,  stock:7,  sku:"SHO-001", image_url:"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80" },
       { id:8,  name:"Block Heel Mules",    category:"shoes",    subcategory:"Mules",            price:6400,  stock:4,  sku:"SHO-002", image_url:"https://www.misslola.com/cdn/shop/files/weekend-attire-white-BF4A5645_large@2x.jpg?v=1709669933" },
       { id:9,  name:"Classic Loafers",     category:"shoes",    subcategory:"Loafers",          price:7200,  stock:9,  sku:"SHO-003", image_url:"https://i5.walmartimages.com/asr/0aeb4873-29ad-41e6-ac67-7e015b8c2b51.ad3b5a681ee662d24ba7a63dac7dad03.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF" },
       { id:10, name:"Ankle Boots",         category:"shoes",    subcategory:"Boots",            price:11500, stock:3,  sku:"SHO-004", image_url:"https://media.mango.com/is/image/punto/27082005-99-052?wid=2048" },
       { id:11, name:"Rose Moisturiser",    category:"cosmetics",subcategory:"Creams",           price:2100,  stock:15, sku:"COS-001", image_url:"https://5.imimg.com/data5/SELLER/Default/2025/9/548547056/YB/FP/AP/54980860/rose-moisturizing-cream-500x500.png" },
       { id:12, name:"Argan Body Lotion",   category:"cosmetics",subcategory:"Lotions",          price:1650,  stock:20, sku:"COS-002", image_url:"https://izilbeauty.com/dw/image/v2/BJQV_PRD/on/demandware.static/-/Sites-izil-master-catalog/default/dw39e8f721/images/large/e-Packshots/Amber/FG-330010_Amber-Moisturising-Body-Lotion/FG-330010_Amber-Moisturising-Body-Lotion-3.jpg" },
       { id:13, name:"Gold Radiance Serum", category:"cosmetics",subcategory:"Serums",           price:4800,  stock:10, sku:"COS-003", image_url:"https://drrashelstore.pk/cdn/shop/files/dr_rashel_products_1__jpg.jpg?v=1770731448" },
-      { id:14, name:"Shea Butter Soap",    category:"cosmetics",subcategory:"Soaps",            price:580,   stock:30, sku:"COS-004", image_url:"https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&q=80"},
+      { id:14, name:"Shea Butter Soap",    category:"cosmetics",subcategory:"Soaps",            price:580,   stock:30, sku:"COS-004", image_url:"https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&q=80" },
       { id:15, name:"Velvet Lip Colour",   category:"cosmetics",subcategory:"Lip Colour",       price:1200,  stock:18, sku:"COS-005", image_url:"https://www.lotus.in/cdn/shop/files/04_6f59dfae-9b2f-4327-94f3-c62dd75045b8.jpg?v=1754469201&width=1600" },
       { id:16, name:"Noir Eau de Parfum",  category:"cosmetics",subcategory:"Perfumes",         price:8500,  stock:7,  sku:"COS-006", image_url:"https://i.ebayimg.com/images/g/UYkAAOSwXBdlZ7~G/s-l1200.jpg" },
       { id:17, name:"Cashmere Knit Sweater", category:"clothing", subcategory:"Sweaters & Knitwear", price:9800, stock:6, sku:"CLO-007", image_url:"https://www.jennikayne.com/cdn/shop/files/cashmere-amelia-crewneck-warm-sand-2.jpg?v=1739307672" },
@@ -702,7 +717,8 @@ function buildTransaction() {
     id: 'TXN-' + Date.now().toString(36).toUpperCase(),
     date: new Date().toISOString(),
     customer: document.getElementById('customerName').value.trim() || 'Walk-in Customer',
-    cashier: storeConfig.cashier || 'Cashier',
+    cashier: activeCashier ? activeCashier.name : (storeConfig.cashier || 'Cashier'),
+    cashier_id: activeCashier ? activeCashier.id : null,
     items: cart.map(i => ({ id:i.id, name:i.name, sku:i.sku||'', emoji:i.emoji||'', price:i.price, qty:i.qty })),
     subtotal: sub,
     discount: discountAmt,
@@ -873,9 +889,7 @@ function downloadReceiptPDF() {
   toast('⬇ Opening PDF export…');
 }
 
-
 //  RETURNS & DAMAGED GOODS
-
 let currentReturnTxn = null;
 let currentReturnType = 'return';
 
@@ -1009,7 +1023,6 @@ function confirmReturn() {
   document.getElementById('receiptModal').style.display = 'flex';
 }
 
-
 //  VOICE COMMAND INPUT
 let recognition = null;
 let voiceActive = false;
@@ -1094,6 +1107,153 @@ function processVoiceCommand(cmd) {
       selectCat(cat.id); stopVoice(); return;
     }
   }
+}
+
+//  CASHIER SYSTEM
+function getDefaultCashiers() {
+  return [
+    { id:1, name:"Tinah",  pin:"1234", role:"manager" },
+    { id:2, name:"Vivian",   pin:"2222", role:"cashier" },
+    { id:3, name:"Grace",   pin:"3333", role:"cashier" },
+    { id:4, name:"Eddy", pin:"4444", role:"manager" }
+  ];
+}
+
+function isManager() {
+  return activeCashier && activeCashier.role === 'manager';
+}
+
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// Show the cashier picker modal (on boot or after end-shift)
+function showCashierPicker(isHandover = false) {
+  const el = document.getElementById('cashierPickerModal');
+  el.style.display = 'flex';
+  document.getElementById('cashierPickerTitle').textContent = isHandover ? 'Shift Handover' : 'Select Cashier';
+  document.getElementById('cashierPickerSubtitle').textContent = isHandover
+    ? 'Previous shift ended. Next cashier, please sign in.'
+    : 'Select your name and enter your PIN to begin.';
+  renderCashierGrid();
+  resetPinEntry();
+}
+
+function renderCashierGrid() {
+  document.getElementById('cashierGrid').innerHTML = cashiers.map(c => `
+    <div class="cashier-tile" onclick="selectCashierTile(${c.id})">
+      <div class="cashier-tile-avatar">${c.name[0]}</div>
+      <div class="cashier-tile-name">${c.name}</div>
+      <div class="cashier-tile-role">${c.role}</div>
+    </div>
+  `).join('');
+}
+
+let selectedCashierId = null;
+let pinBuffer = '';
+
+function selectCashierTile(id) {
+  selectedCashierId = id;
+  const c = cashiers.find(x => x.id === id);
+  document.querySelectorAll('.cashier-tile').forEach(t => t.classList.remove('selected'));
+  document.querySelector(`.cashier-tile:nth-child(${cashiers.indexOf(c)+1})`).classList.add('selected');
+  document.getElementById('pinSection').style.display = 'block';
+  document.getElementById('pinCashierName').textContent = c.name;
+  resetPinEntry();
+  document.getElementById('pinEntry').focus();
+}
+
+function resetPinEntry() {
+  pinBuffer = '';
+  renderPinDots();
+  document.getElementById('pinError').style.display = 'none';
+  document.getElementById('pinEntry').value = '';
+}
+
+function renderPinDots() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinBuffer.length));
+}
+
+function pinKeyPress(k) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  renderPinDots();
+  if (pinBuffer.length === 4) setTimeout(submitPin, 150);
+}
+
+function pinBackspace() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  renderPinDots();
+}
+
+function handlePinInput(e) {
+  // Sync physical keyboard input with pinBuffer
+  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+  pinBuffer = val;
+  e.target.value = val;
+  renderPinDots();
+  if (pinBuffer.length === 4) setTimeout(submitPin, 150);
+}
+
+async function submitPin() {
+  if (!selectedCashierId) return;
+  const c = cashiers.find(x => x.id === selectedCashierId);
+  const hashed = await hashPin(pinBuffer);
+  const expectedHash = await hashPin(c.pin);
+  if (hashed !== expectedHash) {
+    document.getElementById('pinError').style.display = 'block';
+    pinBuffer = '';
+    renderPinDots();
+    return;
+  }
+  // Login success
+  activeCashier = c;
+  activeSession = {
+    cashier_id: c.id,
+    cashier_name: c.name,
+    role: c.role,
+    clockIn: new Date().toISOString(),
+    clockOut: null,
+    sales: 0,
+    revenue: 0,
+    discounts: 0
+  };
+  allSessions.push(activeSession);
+  document.getElementById('cashierPickerModal').style.display = 'none';
+  init();
+  toast(`✓ Welcome, ${c.name}! (${c.role})`);
+}
+
+// End shift — show summary then re-show picker
+function endShift() {
+  if (!activeCashier || !activeSession) return;
+  activeSession.clockOut = new Date().toISOString();
+  const cur = storeConfig.currency || 'KES';
+  const clockIn = new Date(activeSession.clockIn);
+  const clockOut = new Date(activeSession.clockOut);
+  const mins = Math.round((clockOut - clockIn) / 60000);
+  const h = Math.floor(mins / 60), m = mins % 60;
+
+  document.getElementById('shiftSummaryAvatar').textContent = activeSession.cashier_name[0];
+  document.getElementById('shiftSummaryName').textContent = activeSession.cashier_name;
+  document.getElementById('shiftSummaryRole').textContent = activeSession.role;
+  document.getElementById('shiftSummaryClockin').textContent = clockIn.toLocaleTimeString('en-KE', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('shiftSummaryClockout').textContent = clockOut.toLocaleTimeString('en-KE', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('shiftSummaryDuration').textContent = `${h}h ${m}m`;
+  document.getElementById('shiftSummarySales').textContent = activeSession.sales;
+  document.getElementById('shiftSummaryRevenue').textContent = `${cur} ${activeSession.revenue.toLocaleString()}`;
+  document.getElementById('shiftSummaryDiscounts').textContent = `${cur} ${activeSession.discounts.toLocaleString()}`;
+  document.getElementById('shiftSummaryModal').style.display = 'flex';
+}
+
+function closeShiftSummary() {
+  document.getElementById('shiftSummaryModal').style.display = 'none';
+  activeCashier = null;
+  activeSession = null;
+  clearCart();
+  showCashierPicker(true);
 }
 
 // ── BOOT ──

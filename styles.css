@@ -965,3 +965,115 @@
 
   /* drag-over highlight */
   .drag-over { border-color: var(--gold) !important; background: var(--gold-dim) !important; }
+  /* ── CASHIER PICKER MODAL ── */
+  .cashier-picker-modal { width: 520px; }
+  .cashier-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px; margin-bottom: 20px;
+  }
+  .cashier-tile {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 10px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+  }
+  .cashier-tile:hover { border-color: var(--border-gold); transform: translateY(-2px); }
+  .cashier-tile.selected { border-color: var(--gold); background: var(--gold-dim); }
+  .cashier-tile-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #8a6d2f);
+    color: var(--black); font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px; font-family: 'Cormorant Garamond', serif;
+  }
+  .cashier-tile-name { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--text); }
+  .cashier-tile-role {
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-faint); margin-top: 3px;
+  }
+  .cashier-tile.selected .cashier-tile-role { color: var(--gold); }
+
+  .pin-section { animation: slideUp 0.2s ease; }
+  .pin-label {
+    text-align: center; font-size: 12px; color: var(--text-dim);
+    letter-spacing: 0.06em; margin-bottom: 16px;
+  }
+  .pin-label strong { color: var(--gold-light); }
+  .pin-dots {
+    display: flex; gap: 14px; justify-content: center;
+    margin-bottom: 12px;
+  }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--border-gold); background: transparent;
+    transition: all 0.15s;
+  }
+  .pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+  .pin-hidden-input {
+    position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;
+  }
+  .pin-error {
+    text-align: center; font-size: 11px; color: var(--danger);
+    letter-spacing: 0.06em; margin-bottom: 10px;
+    animation: shakeX 0.3s ease;
+  }
+  @keyframes shakeX {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+  }
+  .pin-numpad {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; max-width: 240px; margin: 0 auto;
+  }
+  .pin-key {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px; font-weight: 400;
+    padding: 14px; cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .pin-key:hover { border-color: var(--border-gold); color: var(--gold); }
+  .pin-key:active { transform: scale(0.94); }
+  .pin-key-clear { font-size: 12px; color: var(--text-faint); letter-spacing: 0.06em; }
+  .pin-key-del { font-size: 14px; }
+
+  /* ── END SHIFT BUTTON ── */
+  .end-shift-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: none; border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-faint);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 5px 12px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .end-shift-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── SHIFT SUMMARY MODAL ── */
+  .shift-summary-modal { width: 380px; text-align: center; }
+  .shift-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #8a6d2f);
+    color: var(--black); font-size: 28px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px; font-family: 'Cormorant Garamond', serif;
+  }
+  .shift-cashier-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 300;
+    letter-spacing: 0.2em; color: var(--gold-light); margin-bottom: 4px;
+  }
+  .shift-cashier-role {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 20px;
+  }
+  .shift-stats {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 14px 18px; text-align: left;
+  }
+  .shift-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; font-size: 12px; color: var(--text-dim); letter-spacing: 0.04em;
+  }
+  .shift-stat-row.highlight span:last-child {
+    font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--gold);
+  }
+  .shift-stat-divider { border-top: 1px solid var(--border); margin: 6px 0; }

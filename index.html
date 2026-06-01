@@ -33,6 +33,10 @@
     <div class="cashier-badge" id="cashierBadge">
       <span class="cashier-dot"></span><span id="cashierName">Cashier</span>
     </div>
+    <button class="end-shift-btn" id="endShiftBtn" onclick="endShift()" style="display:none" title="End Shift">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      End Shift
+    </button>
   </div>
 </div>
 
@@ -402,6 +406,70 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="document.getElementById('exportModal').style.display='none'">Close</button>
       <button class="btn-gold" onclick="downloadJson()" style="padding:10px 24px">⬇ Download JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- CASHIER PICKER MODAL -->
+<div class="overlay" id="cashierPickerModal" style="display:none">
+  <div class="modal cashier-picker-modal" onclick="event.stopPropagation()">
+    <div class="modal-header" style="border-bottom:none;padding-bottom:8px">
+      <div>
+        <div class="modal-title" id="cashierPickerTitle">Select Cashier</div>
+        <div style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em;margin-top:4px" id="cashierPickerSubtitle">Select your name and enter your PIN to begin.</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="cashier-grid" id="cashierGrid"></div>
+      <div class="pin-section" id="pinSection" style="display:none">
+        <div class="pin-label">PIN for <strong id="pinCashierName"></strong></div>
+        <div class="pin-dots">
+          <div class="pin-dot"></div><div class="pin-dot"></div>
+          <div class="pin-dot"></div><div class="pin-dot"></div>
+        </div>
+        <input id="pinEntry" type="password" maxlength="4" inputmode="numeric" class="pin-hidden-input" oninput="handlePinInput(event)">
+        <div class="pin-error" id="pinError" style="display:none">Incorrect PIN. Try again.</div>
+        <div class="pin-numpad">
+          <button class="pin-key" onclick="pinKeyPress('1')">1</button>
+          <button class="pin-key" onclick="pinKeyPress('2')">2</button>
+          <button class="pin-key" onclick="pinKeyPress('3')">3</button>
+          <button class="pin-key" onclick="pinKeyPress('4')">4</button>
+          <button class="pin-key" onclick="pinKeyPress('5')">5</button>
+          <button class="pin-key" onclick="pinKeyPress('6')">6</button>
+          <button class="pin-key" onclick="pinKeyPress('7')">7</button>
+          <button class="pin-key" onclick="pinKeyPress('8')">8</button>
+          <button class="pin-key" onclick="pinKeyPress('9')">9</button>
+          <button class="pin-key pin-key-clear" onclick="resetPinEntry()">C</button>
+          <button class="pin-key" onclick="pinKeyPress('0')">0</button>
+          <button class="pin-key pin-key-del" onclick="pinBackspace()">⌫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHIFT SUMMARY MODAL -->
+<div class="overlay" id="shiftSummaryModal" style="display:none">
+  <div class="modal shift-summary-modal" onclick="event.stopPropagation()">
+    <div class="modal-header" style="border-bottom:none">
+      <div class="modal-title">Shift Summary</div>
+    </div>
+    <div class="modal-body" style="padding-top:0">
+      <div class="shift-avatar" id="shiftSummaryAvatar"></div>
+      <div class="shift-cashier-name" id="shiftSummaryName"></div>
+      <div class="shift-cashier-role" id="shiftSummaryRole"></div>
+      <div class="shift-stats">
+        <div class="shift-stat-row"><span>Clock In</span><span id="shiftSummaryClockin">—</span></div>
+        <div class="shift-stat-row"><span>Clock Out</span><span id="shiftSummaryClockout">—</span></div>
+        <div class="shift-stat-row"><span>Duration</span><span id="shiftSummaryDuration">—</span></div>
+        <div class="shift-stat-divider"></div>
+        <div class="shift-stat-row highlight"><span>Sales</span><span id="shiftSummarySales">0</span></div>
+        <div class="shift-stat-row highlight"><span>Revenue</span><span id="shiftSummaryRevenue">KES 0</span></div>
+        <div class="shift-stat-row"><span>Discounts Given</span><span id="shiftSummaryDiscounts">KES 0</span></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn-gold" onclick="closeShiftSummary()" style="padding:11px 32px">Hand Over Shift →</button>
     </div>
   </div>
 </div>
