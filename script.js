@@ -1,4 +1,3 @@
-
 //  STATE
 let storeConfig = {};
 let categories = [];
@@ -18,25 +17,43 @@ let activeCashier = null;
 let activeSession = null;
 let allSessions = [];
 
+const LS = {
+  products:'tinah_products', transactions:'tinah_transactions',
+  sessions:'tinah_sessions',  queue:'tinah_queue',
+  config:'tinah_config',      categories:'tinah_categories', cashiers:'tinah_cashiers'
+};
+let offlineQueue = [];
+let netStatus = 'online';
+
 //  BOOT — load maison-data.json
 async function boot() {
   setLoadStatus('Loading product data…');
-  try {
-    // Try fetching the JSON file from same directory
-    const res = await fetch('maison-data.json');
-    if (!res.ok) throw new Error('file not found');
-    const data = await res.json();
-    ingestData(data);
-    setLoadStatus('Ready');
-  } catch (e) {
-    // Fallback: use embedded seed data
-    setLoadStatus('Using built-in catalogue…');
-    ingestData(getSeedData());
+  const saved = lsGet('tinah_products');
+  if (saved) {
+    storeConfig  = lsGet('tinah_config')      || {};
+    categories   = lsGet('tinah_categories')  || [];
+    products     = saved;
+    cashiers     = lsGet('tinah_cashiers')    || getDefaultCashiers();
+    transactions = lsGet('tinah_transactions')|| [];
+    allSessions  = lsGet('tinah_sessions')    || [];
+    offlineQueue = lsGet('tinah_queue')       || [];
+    nextId = (Math.max(0,...products.map(p=>p.id))+1)||100;
+    setLoadStatus('Restored from local storage');
+  } else {
+    try {
+      const res = await fetch('maison-data.json');
+      if (!res.ok) throw new Error();
+      ingestData(await res.json());
+    } catch {
+      setLoadStatus('Using built-in catalogue…');
+      ingestData(getSeedData());
+    }
   }
   await delay(600);
   document.getElementById('loadScreen').style.opacity = '0';
   await delay(400);
   document.getElementById('loadScreen').style.display = 'none';
+  initNetwork();
   showCashierPicker();
 }
 
@@ -45,7 +62,8 @@ function ingestData(data) {
   categories = data.categories || [];
   products = data.products || [];
   cashiers = data.cashiers || getDefaultCashiers();
-  nextId = (Math.max(0, ...products.map(p => p.id)) + 1) || 100;
+  nextId = (Math.max(0,...products.map(p=>p.id))+1)||100;
+  persistAll();
 }
 
 function setLoadStatus(msg) {
@@ -104,25 +122,20 @@ function handleJsonFile(e) {
   e.target.value = '';
 }
 
-function buildExportJson() {
-  return {
-    store: storeConfig,
-    categories: categories,
-    products: products.map(p => {
-      // Keep base64 images but note they inflate file size
-      return { ...p };
-    })
-  };
+function buildExportJson(full=false) {
+  const base = { store:storeConfig, categories, cashiers, products:products.map(p=>({...p})) };
+  if (full) { base.transactions=transactions; base.sessions=allSessions; }
+  return base;
 }
 
 function openExportModal() {
-  const json = JSON.stringify(buildExportJson(), null, 2);
+  const json = JSON.stringify(buildExportJson(false), null, 2);
   document.getElementById('jsonExportPre').textContent = json;
   document.getElementById('exportModal').style.display = 'flex';
 }
 
 function downloadJson() {
-  const json = JSON.stringify(buildExportJson(), null, 2);
+  const json = JSON.stringify(buildExportJson(false), null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -475,10 +488,9 @@ function saveItem() {
   }
 
   document.getElementById('productCount').textContent = products.length;
-  closeItemModal();
-  filterProducts();
-  renderCart();
+  closeItemModal(); filterProducts(); renderCart();
   if (document.getElementById('inventoryView').classList.contains('active')) renderInventoryTable();
+  lsSet('tinah_products', products);
 }
 
 function deleteProduct(id) {
@@ -492,6 +504,7 @@ function deleteProduct(id) {
   filterProducts();
   renderCart();
   if (document.getElementById('inventoryView').classList.contains('active')) renderInventoryTable();
+  lsSet('tinah_products', products);
   toast(`✓ ${p.name} removed`);
 }
 
@@ -594,10 +607,11 @@ function completePayment() {
   lastTxnId = txn.id;
   // Credit this sale to the active session
   if (activeSession) {
-    activeSession.sales++;
-    activeSession.revenue += txn.total;
-    activeSession.discounts += txn.discount;
+    activeSession.sales++; activeSession.revenue+=txn.total; activeSession.discounts+=txn.discount;
+    lsSet('tinah_sessions', allSessions);
   }
+  lsSet('tinah_products', products);
+  lsSet('tinah_transactions', transactions);
   closePayment();
   showSuccess();
 }
@@ -1123,10 +1137,7 @@ function isManager() {
   return activeCashier && activeCashier.role === 'manager';
 }
 
-async function hashPin(pin) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
+function hashPin(pin) { return pin; } // plain compare — crypto.subtle breaks on HTTP/LAN
 
 // Show the cashier picker modal (on boot or after end-shift)
 function showCashierPicker(isHandover = false) {
@@ -1197,11 +1208,11 @@ function handlePinInput(e) {
   if (pinBuffer.length === 4) setTimeout(submitPin, 150);
 }
 
-async function submitPin() {
+function submitPin() {
   if (!selectedCashierId) return;
   const c = cashiers.find(x => x.id === selectedCashierId);
-  const hashed = await hashPin(pinBuffer);
-  const expectedHash = await hashPin(c.pin);
+  const hashed = hashPin(pinBuffer);
+  const expectedHash = hashPin(c.pin);
   if (hashed !== expectedHash) {
     document.getElementById('pinError').style.display = 'block';
     pinBuffer = '';
@@ -1221,6 +1232,7 @@ async function submitPin() {
     discounts: 0
   };
   allSessions.push(activeSession);
+  lsSet('tinah_sessions', allSessions);
   document.getElementById('cashierPickerModal').style.display = 'none';
   init();
   toast(`✓ Welcome, ${c.name}! (${c.role})`);
@@ -1254,6 +1266,88 @@ function closeShiftSummary() {
   activeSession = null;
   clearCart();
   showCashierPicker(true);
+}
+
+
+// ── localStorage helpers ──
+function lsSet(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
+function lsGet(key){try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}}
+
+function persistAll(){
+  lsSet('tinah_config',storeConfig); lsSet('tinah_categories',categories);
+  lsSet('tinah_products',products);  lsSet('tinah_cashiers',cashiers);
+  lsSet('tinah_transactions',transactions); lsSet('tinah_sessions',allSessions);
+}
+
+// ── Network status — drives the existing cashier-dot colour ──
+function initNetwork(){
+  updateNetDot();
+  window.addEventListener('online', ()=>{ netStatus='online';  updateNetDot(); });
+  window.addEventListener('offline',()=>{ netStatus='offline'; updateNetDot(); });
+  setInterval(probeConnection,30000);
+  probeConnection();
+}
+
+function probeConnection(){
+  const t0=Date.now();
+  fetch('https://www.gstatic.com/generate_204',{mode:'no-cors',cache:'no-store'})
+    .then(()=>{ netStatus=Date.now()-t0>2000?'weak':'online'; updateNetDot(); })
+    .catch(()=>{ netStatus='offline'; updateNetDot(); });
+}
+
+function updateNetDot(){
+  const dot=document.getElementById('netDot'); if(!dot) return;
+  dot.classList.remove('net-online','net-weak','net-offline');
+  dot.classList.add('net-'+netStatus);
+  dot.title={online:'Online',weak:'Slow connection',offline:'Offline'}[netStatus]||netStatus;
+}
+
+// ── Backup / Restore ──
+function openBackupModal(){
+  const el=document.getElementById('backupModal');
+  if(!el){ toast('⚠ backupModal not found in HTML'); return; }
+  document.getElementById('backupStats').textContent =
+    products.length+' products · '+transactions.length+' transactions · '+allSessions.length+' sessions';
+  document.querySelectorAll('.backup-manager-only').forEach(el=>el.style.display=isManager()?'block':'none');
+  el.style.display='flex';
+}
+
+function downloadFullBackup(){
+  const now=new Date().toISOString().slice(0,10);
+  const blob=new Blob([JSON.stringify(buildExportJson(true),null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='tinah-backup-'+now+'.json'; a.click();
+  toast('✓ Backup saved to your computer');
+}
+
+function triggerRestoreFile(){ document.getElementById('restoreFileInput').click(); }
+
+function handleRestoreFile(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=evt=>{
+    try{
+      const data=JSON.parse(evt.target.result);
+      if(!data.products){ toast('⚠ Not a valid backup file'); return; }
+      if(!confirm('Restore from '+file.name+'?\n\nThis replaces ALL current data.')) return;
+      ingestData(data);
+      if(data.transactions){ transactions=data.transactions; lsSet('tinah_transactions',transactions); }
+      if(data.sessions){ allSessions=data.sessions; lsSet('tinah_sessions',allSessions); }
+      populateCatSelects(); renderCatChips(); renderSubcats(); filterProducts();
+      document.getElementById('productCount').textContent=products.length;
+      document.getElementById('backupModal').style.display='none';
+      toast('✓ Restored: '+products.length+' products, '+transactions.length+' transactions');
+    }catch(e){ toast('⚠ Could not read file: '+e.message); }
+  };
+  r.readAsText(file); e.target.value='';
+}
+
+function clearLocalStorage(){
+  if(!isManager()){ toast('⚠ Manager access required'); return; }
+  if(!confirm('Wipe all local data and reset to sample catalogue?')) return;
+  ['tinah_products','tinah_transactions','tinah_sessions','tinah_queue',
+   'tinah_config','tinah_categories','tinah_cashiers'].forEach(k=>localStorage.removeItem(k));
+  toast('✓ Cleared — refresh the page to reload');
 }
 
 // ── BOOT ──
