@@ -26,6 +26,7 @@
   <div class="topbar-center">
     <button class="tab-btn active" onclick="switchView('pos')">POS</button>
     <button class="tab-btn" onclick="switchView('inventory')">Inventory</button>
+    <button class="tab-btn" onclick="switchView('returns')">Returns</button>
   </div>
   <div class="topbar-right">
     <div id="clock"></div>
@@ -55,12 +56,17 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input class="search-input" id="searchInput" placeholder="Search products…" oninput="filterProducts()">
         </div>
+        <button class="btn-voice" id="voiceBtn" onclick="toggleVoice()" title="Voice command">🎙</button>
         <button class="btn-gold" onclick="openAddModal()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Add Item
         </button>
       </div>
       <div class="cats" id="catChips"></div>
+      <div class="voice-status" id="voiceStatus" style="display:none">
+        <span class="voice-pulse"></span>
+        <span id="voiceStatusText">Listening… say "Add [product]", "Search [term]", or "Clear cart"</span>
+      </div>
     </div>
     <div class="subcat-strip" id="subcatStrip"></div>
     <div class="products-area">
@@ -144,7 +150,97 @@
   </div>
 </div>
 
-<!-- ADD / EDIT MODAL -->
+<!-- RETURNS VIEW -->
+<div id="returnsView">
+  <div class="inv-header">
+    <div class="inv-title">Returns & Adjustments</div>
+    <div class="inv-controls">
+      <div class="search-wrap" style="width:240px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" id="returnsSearchInput" placeholder="Search by receipt ID or name…" oninput="renderReturnsTable()" style="padding-left:32px">
+      </div>
+    </div>
+  </div>
+  <div class="inv-table-wrap">
+    <div id="returnsEmpty" style="text-align:center;padding:60px;color:var(--text-faint);font-size:13px;letter-spacing:0.1em;display:none">No transactions yet. Complete a sale to see returns history.</div>
+    <table id="returnsTable">
+      <thead>
+        <tr>
+          <th>Receipt ID</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="returnsTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- RETURN DETAIL MODAL -->
+<div class="overlay" id="returnModal" style="display:none">
+  <div class="modal return-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Process Return</div>
+      <button class="modal-close" onclick="closeReturnModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="return-receipt-info" id="returnReceiptInfo"></div>
+      <div class="form-row" style="margin-top:14px">
+        <label class="form-label">Return Type</label>
+        <div class="return-type-btns">
+          <button class="return-type-btn active" data-type="return" onclick="selectReturnType('return')">↩ Customer Return</button>
+          <button class="return-type-btn" data-type="damaged" onclick="selectReturnType('damaged')">💔 Damaged</button>
+          <button class="return-type-btn" data-type="expired" onclick="selectReturnType('expired')">⏰ Expired</button>
+          <button class="return-type-btn" data-type="disposed" onclick="selectReturnType('disposed')">🗑 Disposed</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Items to Return</label>
+        <div id="returnItemsList"></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Reason / Notes</label>
+        <input class="form-input" id="returnNotes" placeholder="Optional notes…">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeReturnModal()">Cancel</button>
+      <button class="btn-gold" onclick="confirmReturn()" style="padding:10px 24px">Confirm Return</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="overlay" id="receiptModal" style="display:none">
+  <div class="modal receipt-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Receipt</div>
+      <button class="modal-close" onclick="closeReceiptModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="receiptContent"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeReceiptModal()">Close</button>
+      <button class="btn-outline" onclick="printReceipt()">🖨 Print</button>
+      <button class="btn-gold" onclick="downloadReceiptPDF()" style="padding:10px 24px">⬇ PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- VOICE OVERLAY -->
+<div id="voiceOverlay" style="display:none">
+  <div class="voice-overlay-inner">
+    <div class="voice-orb" id="voiceOrb">🎙</div>
+    <div class="voice-transcript" id="voiceTranscript">Listening…</div>
+    <div class="voice-hint">Say: "Add Silk Blouse" · "Search heels" · "Clear cart" · "Checkout"</div>
+    <button class="btn-cancel" onclick="stopVoice()" style="margin-top:18px">Stop</button>
+  </div>
+</div>
 <div class="overlay" id="itemModal" style="display:none">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -286,7 +382,8 @@
     <div class="modal-body" style="padding-top:0">
       <div class="receipt-lines" id="receiptLines"></div>
     </div>
-    <div class="modal-footer" style="justify-content:center">
+    <div class="modal-footer" style="justify-content:center;gap:8px">
+      <button class="btn-outline" onclick="showReceiptModal(lastTxnId)">🧾 Receipt</button>
       <button class="btn-gold" onclick="newTransaction()" style="padding:11px 32px">New Transaction</button>
     </div>
   </div>

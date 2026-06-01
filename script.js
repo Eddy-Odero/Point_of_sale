@@ -1,6 +1,5 @@
-// ═══════════════════════════════════════════════
+
 //  STATE
-// ═══════════════════════════════════════════════
 let storeConfig = {};
 let categories = [];
 let products = [];
@@ -12,10 +11,9 @@ let nextId = 100;
 let payMethod = 'cash';
 let discountAmt = 0;
 let currentImageData = ''; // base64 or URL
-
-// ═══════════════════════════════════════════════
+ 
 //  BOOT — load maison-data.json
-// ═══════════════════════════════════════════════
+
 async function boot() {
   setLoadStatus('Loading product data…');
   try {
@@ -68,9 +66,8 @@ function init() {
   setInterval(updateClock, 1000);
 }
 
-// ═══════════════════════════════════════════════
+
 //  JSON I/O
-// ═══════════════════════════════════════════════
 function triggerJsonLoad() {
   document.getElementById('jsonFileInput').click();
 }
@@ -126,9 +123,8 @@ function downloadJson() {
   toast('✓ maison-data.json downloaded');
 }
 
-// ═══════════════════════════════════════════════
 //  CLOCK
-// ═══════════════════════════════════════════════
+
 function updateClock() {
   const now = new Date();
   document.getElementById('clock').textContent =
@@ -136,20 +132,19 @@ function updateClock() {
     ' · ' + now.toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short' });
 }
 
-// ═══════════════════════════════════════════════
 //  TABS
-// ═══════════════════════════════════════════════
+
 function switchView(v) {
   document.getElementById('posView').classList.toggle('hidden', v !== 'pos');
   document.getElementById('inventoryView').classList.toggle('active', v === 'inventory');
+  document.getElementById('returnsView').classList.toggle('active', v === 'returns');
   document.querySelectorAll('.tab-btn').forEach((b,i) =>
-    b.classList.toggle('active', (i===0 && v==='pos') || (i===1 && v==='inventory')));
+    b.classList.toggle('active', (i===0 && v==='pos') || (i===1 && v==='inventory') || (i===2 && v==='returns')));
   if (v === 'inventory') renderInventoryTable();
+  if (v === 'returns') renderReturnsTable();
 }
 
-// ═══════════════════════════════════════════════
 //  CATEGORY UI
-// ═══════════════════════════════════════════════
 function populateCatSelects() {
   const sel = document.getElementById('f_cat');
   sel.innerHTML = '<option value="">— Select —</option>';
@@ -206,9 +201,8 @@ function updateSubcats() {
   }
 }
 
-// ═══════════════════════════════════════════════
 //  PRODUCTS GRID
-// ═══════════════════════════════════════════════
+
 function filterProducts() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const filtered = products.filter(p => {
@@ -255,9 +249,8 @@ function renderProducts(list) {
   `).join('');
 }
 
-// ═══════════════════════════════════════════════
 //  CART
-// ═══════════════════════════════════════════════
+
 function addToCart(id) {
   const p = products.find(x => x.id === id);
   if (!p || p.stock === 0) return;
@@ -346,9 +339,7 @@ function recalc() {
   document.getElementById('checkoutBtn').disabled = cart.length === 0;
 }
 
-// ═══════════════════════════════════════════════
 //  IMAGE HANDLING
-// ═══════════════════════════════════════════════
 function handleDragOver(e) {
   e.preventDefault();
   document.getElementById('imgUploadArea').classList.add('drag-over');
@@ -402,9 +393,7 @@ function clearImgPreview() {
   document.getElementById('imgFileInput').value = '';
 }
 
-// ═══════════════════════════════════════════════
 //  ADD / EDIT MODAL
-// ═══════════════════════════════════════════════
 function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').textContent = 'New Item';
@@ -499,9 +488,8 @@ function deleteProduct(id) {
   toast(`✓ ${p.name} removed`);
 }
 
-// ═══════════════════════════════════════════════
 //  INVENTORY TABLE
-// ═══════════════════════════════════════════════
+
 function renderInventoryTable() {
   const q = (document.getElementById('invSearchInput')?.value || '').toLowerCase();
   const list = q
@@ -533,9 +521,8 @@ function renderInventoryTable() {
   }).join('');
 }
 
-// ═══════════════════════════════════════════════
 //  PAYMENT
-// ═══════════════════════════════════════════════
+
 function getTotal() {
   const vr = storeConfig.vat_rate || 0.16;
   const sub = cart.reduce((s,i) => s + i.price * i.qty, 0);
@@ -596,6 +583,12 @@ function completePayment() {
     const p = products.find(x => x.id === item.id);
     if (p) p.stock = Math.max(0, p.stock - item.qty);
   });
+
+  // Build transaction record
+  const txn = buildTransaction();
+  transactions.unshift(txn);
+  lastTxnId = txn.id;
+
   closePayment();
   showSuccess();
 }
@@ -613,7 +606,7 @@ function showSuccess() {
       <span>TOTAL PAID</span>
       <span>${cur} ${Math.round(getTotal()).toLocaleString()}</span>
     </div>`;
-  document.getElementById('successSub').textContent = `Thank you, ${customer}!`;
+  document.getElementById('successSub').textContent = `Thank you, ${customer}! · Ref: ${lastTxnId}`;
   document.getElementById('successModal').style.display = 'flex';
 }
 
@@ -624,9 +617,7 @@ function newTransaction() {
   filterProducts();
 }
 
-// ═══════════════════════════════════════════════
 //  TOAST
-// ═══════════════════════════════════════════════
 function toast(msg) {
   const t = document.createElement('div');
   t.className = 'toast';
@@ -635,9 +626,7 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2800);
 }
 
-// ═══════════════════════════════════════════════
 //  SEED DATA (fallback when JSON file not found)
-// ═══════════════════════════════════════════════
 function getSeedData() {
   return {
     store: { name:"TINAH COSMETICS", cashier:"Vivian", currency:"KES", vat_rate:0.16 },
@@ -647,24 +636,24 @@ function getSeedData() {
       { id:"cosmetics",label:"Cosmetics",subcategories:["Soaps","Creams","Lotions","Serums","Foundations","Perfumes","Lip Colour","Eye Makeup","Hair care","Face care"] }
     ],
     products: [
-      { id:1,  name:"Silk Wrap Blouse",    category:"clothing", subcategory:"Tops & Blouses",  price:4200,  stock:8,  sku:"CLO-001", image_url:"https://img.lilysilk.com/cdn-cgi/image/width=1800,height=2700,quality=80,fit=cover/media/catalog/product/N9962/03BU/4.jpg", emoji:"👗" },
-      { id:2,  name:"High-Waist Trousers", category:"clothing", subcategory:"Trousers & Pants", price:5800,  stock:5,  sku:"CLO-002", image_url:"https://m.media-amazon.com/images/I/712gf22WfGL._AC_UY1000_.jpg", emoji:"👖" },
-      { id:3,  name:"Floral Midi Dress",   category:"clothing", subcategory:"Dresses",          price:7500,  stock:3,  sku:"CLO-003", image_url:"https://i5.walmartimages.com/asr/5d2a59a5-cc00-4c31-bc3d-e96399c7c998.39897716b4ae0b580e59ea1497291283.jpeg", emoji:"🌸" },
+      { id:1,  name:"Silk Wrap Blouse",    category:"clothing", subcategory:"Tops & Blouses",  price:4200,  stock:8,  sku:"CLO-001", image_url:"https://img.lilysilk.com/cdn-cgi/image/width=1800,height=2700,quality=80,fit=cover/media/catalog/product/N9962/03BU/4.jpg" },
+      { id:2,  name:"High-Waist Trousers", category:"clothing", subcategory:"Trousers & Pants", price:5800,  stock:5,  sku:"CLO-002", image_url:"https://m.media-amazon.com/images/I/712gf22WfGL._AC_UY1000_.jpg" },
+      { id:3,  name:"Floral Midi Dress",   category:"clothing", subcategory:"Dresses",          price:7500,  stock:3,  sku:"CLO-003", image_url:"https://i5.walmartimages.com/asr/5d2a59a5-cc00-4c31-bc3d-e96399c7c998.39897716b4ae0b580e59ea1497291283.jpeg" },
       { id:4,  name:"Wool Blend Coat",     category:"clothing", subcategory:"Jackets & Coats",  price:18500, stock:4,  sku:"CLO-004", image_url:"https://kaleidoscope.scene7.com/is/image/OttoUK/600w/Witt-Wool-Blend-Belted-Coat~H80467FRSP.jpg" },
       { id:5,  name:"Fitted Blazer",       category:"clothing", subcategory:"Suits",            price:12000, stock:6,  sku:"CLO-005", image_url:"https://media.mango.com/is/image/punto/27041294-99-002?wid=2048" },
       { id:6,  name:"A-Line Mini Skirt",   category:"clothing", subcategory:"Skirts",           price:3200,  stock:11, sku:"CLO-006", image_url:"https://m.media-amazon.com/images/I/61FiyfJK7XL._AC_SX466_.jpg" },
-      { id:7,  name:"Strappy Heels",       category:"shoes",    subcategory:"Heels",            price:8900,  stock:7,  sku:"SHO-001", image_url:"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80", emoji:"👠" },
-      { id:8,  name:"Block Heel Mules",    category:"shoes",    subcategory:"Mules",            price:6400,  stock:4,  sku:"SHO-002", image_url:"https://www.misslola.com/cdn/shop/files/weekend-attire-white-BF4A5645_large@2x.jpg?v=1709669933", emoji:"🩴" },
-      { id:9,  name:"Classic Loafers",     category:"shoes",    subcategory:"Loafers",          price:7200,  stock:9,  sku:"SHO-003", image_url:"https://i5.walmartimages.com/asr/0aeb4873-29ad-41e6-ac67-7e015b8c2b51.ad3b5a681ee662d24ba7a63dac7dad03.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF", emoji:"👞" },
+      { id:7,  name:"Strappy Heels",       category:"shoes",    subcategory:"Heels",            price:8900,  stock:7,  sku:"SHO-001", image_url:"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80", },
+      { id:8,  name:"Block Heel Mules",    category:"shoes",    subcategory:"Mules",            price:6400,  stock:4,  sku:"SHO-002", image_url:"https://www.misslola.com/cdn/shop/files/weekend-attire-white-BF4A5645_large@2x.jpg?v=1709669933" },
+      { id:9,  name:"Classic Loafers",     category:"shoes",    subcategory:"Loafers",          price:7200,  stock:9,  sku:"SHO-003", image_url:"https://i5.walmartimages.com/asr/0aeb4873-29ad-41e6-ac67-7e015b8c2b51.ad3b5a681ee662d24ba7a63dac7dad03.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF" },
       { id:10, name:"Ankle Boots",         category:"shoes",    subcategory:"Boots",            price:11500, stock:3,  sku:"SHO-004", image_url:"https://media.mango.com/is/image/punto/27082005-99-052?wid=2048" },
       { id:11, name:"Rose Moisturiser",    category:"cosmetics",subcategory:"Creams",           price:2100,  stock:15, sku:"COS-001", image_url:"https://5.imimg.com/data5/SELLER/Default/2025/9/548547056/YB/FP/AP/54980860/rose-moisturizing-cream-500x500.png" },
-      { id:12, name:"Argan Body Lotion",   category:"cosmetics",subcategory:"Lotions",          price:1650,  stock:20, sku:"COS-002", image_url:"https://izilbeauty.com/dw/image/v2/BJQV_PRD/on/demandware.static/-/Sites-izil-master-catalog/default/dw39e8f721/images/large/e-Packshots/Amber/FG-330010_Amber-Moisturising-Body-Lotion/FG-330010_Amber-Moisturising-Body-Lotion-3.jpg", emoji:"🧴" },
+      { id:12, name:"Argan Body Lotion",   category:"cosmetics",subcategory:"Lotions",          price:1650,  stock:20, sku:"COS-002", image_url:"https://izilbeauty.com/dw/image/v2/BJQV_PRD/on/demandware.static/-/Sites-izil-master-catalog/default/dw39e8f721/images/large/e-Packshots/Amber/FG-330010_Amber-Moisturising-Body-Lotion/FG-330010_Amber-Moisturising-Body-Lotion-3.jpg" },
       { id:13, name:"Gold Radiance Serum", category:"cosmetics",subcategory:"Serums",           price:4800,  stock:10, sku:"COS-003", image_url:"https://drrashelstore.pk/cdn/shop/files/dr_rashel_products_1__jpg.jpg?v=1770731448" },
-      { id:14, name:"Shea Butter Soap",    category:"cosmetics",subcategory:"Soaps",            price:580,   stock:30, sku:"COS-004", image_url:"https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&q=80", emoji:"🧼" },
-      { id:15, name:"Velvet Lip Colour",   category:"cosmetics",subcategory:"Lip Colour",       price:1200,  stock:18, sku:"COS-005", image_url:"https://www.lotus.in/cdn/shop/files/04_6f59dfae-9b2f-4327-94f3-c62dd75045b8.jpg?v=1754469201&width=1600", emoji:"💄" },
-      { id:16, name:"Noir Eau de Parfum",  category:"cosmetics",subcategory:"Perfumes",         price:8500,  stock:7,  sku:"COS-006", image_url:"https://i.ebayimg.com/images/g/UYkAAOSwXBdlZ7~G/s-l1200.jpg", emoji:"🌺" },
+      { id:14, name:"Shea Butter Soap",    category:"cosmetics",subcategory:"Soaps",            price:580,   stock:30, sku:"COS-004", image_url:"https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&q=80"},
+      { id:15, name:"Velvet Lip Colour",   category:"cosmetics",subcategory:"Lip Colour",       price:1200,  stock:18, sku:"COS-005", image_url:"https://www.lotus.in/cdn/shop/files/04_6f59dfae-9b2f-4327-94f3-c62dd75045b8.jpg?v=1754469201&width=1600" },
+      { id:16, name:"Noir Eau de Parfum",  category:"cosmetics",subcategory:"Perfumes",         price:8500,  stock:7,  sku:"COS-006", image_url:"https://i.ebayimg.com/images/g/UYkAAOSwXBdlZ7~G/s-l1200.jpg" },
       { id:17, name:"Cashmere Knit Sweater", category:"clothing", subcategory:"Sweaters & Knitwear", price:9800, stock:6, sku:"CLO-007", image_url:"https://www.jennikayne.com/cdn/shop/files/cashmere-amelia-crewneck-warm-sand-2.jpg?v=1739307672" },
-{ id:18, name:"Denim Jacket", category:"clothing", subcategory:"Jackets & Coats", price:7600, stock:9, sku:"CLO-008", image_url:"https://hips.hearstapps.com/hmg-prod/images/gettyimages-2133930650-66aaf97f8bf25.jpg?crop=0.659xw:1.00xh;0.171xw,0&resize=640:*", emoji:"🧥" },
+{ id:18, name:"Denim Jacket", category:"clothing", subcategory:"Jackets & Coats", price:7600, stock:9, sku:"CLO-008", image_url:"https://hips.hearstapps.com/hmg-prod/images/gettyimages-2133930650-66aaf97f8bf25.jpg?crop=0.659xw:1.00xh;0.171xw,0&resize=640:*" },
 { id:19, name:"Pleated Maxi Dress", category:"clothing", subcategory:"Dresses", price:9200, stock:4, sku:"CLO-009", image_url:"https://www.thedressoutlet.com/cdn/shop/files/3147_NAVY_A1.jpg?v=1746660710" },
 { id:20, name:"Tailored Jumpsuit", category:"clothing", subcategory:"Suits", price:10800, stock:5, sku:"CLO-010", image_url:"https://mediahub.prettylittlething.com/cno7236_black_xl?qlt=70&w=480&h=720&dpr=1&fit=cvr" },
 { id:21, name:"Leather Sneakers", category:"shoes", subcategory:"Sneakers", price:9500, stock:10, sku:"SHO-005", image_url:"https://cdn.hophopshop.com/productImages/28093/medium/Tezza-4141.jpg" },
@@ -691,6 +680,420 @@ function getSeedData() {
 { id:40, name:"Waterproof Mascara", category:"cosmetics", subcategory:"Eye Makeup", price:2800, stock:16, sku:"COS-015", image_url:"https://d1ak51zwgmtslz.cloudfront.net/PRODUCTS_EN/8682536058360_9.jpg" }
     ]
   };
+}
+
+//  TRANSACTIONS & RECEIPT SYSTEM
+
+let transactions = [];
+let lastTxnId = null;
+
+function buildTransaction() {
+  const vr = storeConfig.vat_rate || 0.16;
+  const sub = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  const afterDisc = sub - discountAmt;
+  const vat = afterDisc * vr;
+  const total = afterDisc + vat;
+  const tendered = payMethod === 'cash'
+    ? (parseFloat(document.getElementById('cashTendered').value) || 0) : null;
+  const mpesaPhone = payMethod === 'mpesa'
+    ? document.getElementById('mpesaPhone').value.trim() : null;
+
+  return {
+    id: 'TXN-' + Date.now().toString(36).toUpperCase(),
+    date: new Date().toISOString(),
+    customer: document.getElementById('customerName').value.trim() || 'Walk-in Customer',
+    cashier: storeConfig.cashier || 'Cashier',
+    items: cart.map(i => ({ id:i.id, name:i.name, sku:i.sku||'', emoji:i.emoji||'', price:i.price, qty:i.qty })),
+    subtotal: sub,
+    discount: discountAmt,
+    vat: Math.round(vat),
+    total: Math.round(total),
+    payMethod,
+    tendered,
+    change: tendered ? Math.max(0, tendered - total) : null,
+    mpesaPhone,
+    status: 'complete',
+    returns: []
+  };
+}
+
+// ── RECEIPT RENDER ──
+function buildReceiptHTML(txn, isCreditNote = false) {
+  const cur = storeConfig.currency || 'KES';
+  const storeName = storeConfig.name || 'TINAH COSMETICS';
+  const date = new Date(txn.date);
+  const dateStr = date.toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric' });
+  const timeStr = date.toLocaleTimeString('en-KE', { hour:'2-digit', minute:'2-digit' });
+  const vatPct = Math.round((storeConfig.vat_rate || 0.16) * 100);
+
+  const creditBanner = isCreditNote
+    ? `<div class="receipt-credit-note">★ CREDIT NOTE / RETURN ★</div>` : '';
+
+  const itemRows = txn.items.map(i => `
+    <div class="receipt-item-row">
+      <span class="receipt-item-name">${i.emoji} ${i.name}</span>
+      <span class="receipt-item-qty">×${i.qty}</span>
+      <span class="receipt-item-price">${cur} ${(i.price * i.qty).toLocaleString()}</span>
+    </div>
+  `).join('');
+
+  const discountRow = txn.discount > 0
+    ? `<div class="receipt-summary-row"><span>Discount</span><span>− ${cur} ${txn.discount.toLocaleString()}</span></div>` : '';
+
+  const payLine = txn.payMethod === 'cash' && txn.tendered
+    ? `<div style="font-size:10px;color:#555">Tendered: ${cur} ${txn.tendered.toLocaleString()} &nbsp;|&nbsp; Change: ${cur} ${Math.round(txn.change||0).toLocaleString()}</div>` : '';
+
+  const mpesaLine = txn.payMethod === 'mpesa' && txn.mpesaPhone
+    ? `<div style="font-size:10px;color:#555">M-Pesa: ${txn.mpesaPhone}</div>` : '';
+
+  return `
+    <div class="receipt-paper" id="receiptPaper">
+      ${creditBanner}
+      <div class="receipt-logo">
+        <div class="receipt-store-name">${storeName}</div>
+        <div class="receipt-store-sub">POINT OF SALE RECEIPT</div>
+      </div>
+      <hr class="receipt-divider-solid">
+      <div class="receipt-meta">
+        <div class="receipt-meta-row"><span>Receipt #</span><span><strong>${txn.id}</strong></span></div>
+        <div class="receipt-meta-row"><span>Date</span><span>${dateStr} ${timeStr}</span></div>
+        <div class="receipt-meta-row"><span>Customer</span><span>${txn.customer}</span></div>
+        <div class="receipt-meta-row"><span>Cashier</span><span>${txn.cashier}</span></div>
+        <div class="receipt-meta-row"><span>Payment</span><span style="text-transform:uppercase">${txn.payMethod}</span></div>
+      </div>
+      <hr class="receipt-divider">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:6px">ITEMS</div>
+      ${itemRows}
+      <hr class="receipt-divider">
+      <div class="receipt-summary">
+        <div class="receipt-summary-row"><span>Subtotal</span><span>${cur} ${txn.subtotal.toLocaleString()}</span></div>
+        ${discountRow}
+        <div class="receipt-summary-row"><span>VAT (${vatPct}%)</span><span>${cur} ${txn.vat.toLocaleString()}</span></div>
+      </div>
+      <div class="receipt-total-row"><span>TOTAL</span><span>${cur} ${txn.total.toLocaleString()}</span></div>
+      <div class="receipt-method">${payLine}${mpesaLine}</div>
+      <hr class="receipt-divider" style="margin-top:14px">
+      <div class="receipt-footer">
+        Thank you for shopping with us!<br>
+        Goods once sold are not returnable<br>
+        without receipt within 7 days.<br><br>
+        <strong>${storeName}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function showReceiptModal(txnId) {
+  const txn = transactions.find(t => t.id === txnId);
+  if (!txn) { toast('⚠ Receipt not found'); return; }
+  document.getElementById('receiptContent').innerHTML = buildReceiptHTML(txn);
+  document.getElementById('receiptModal').style.display = 'flex';
+  // Store current txn for PDF/print
+  window._currentReceiptTxn = txn;
+}
+
+function closeReceiptModal() {
+  document.getElementById('receiptModal').style.display = 'none';
+}
+
+function printReceipt() {
+  const txn = window._currentReceiptTxn;
+  if (!txn) return;
+  const html = buildReceiptHTML(txn);
+  const win = window.open('', '_blank', 'width=400,height=700');
+  win.document.write(`
+    <!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>Receipt ${txn.id}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+      body{margin:0;background:#fff;font-family:'Courier New',monospace}
+      ${document.querySelector('style') ? '' : ''}
+      .receipt-paper{padding:24px 20px;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;color:#1a1a1a}
+      .receipt-store-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;letter-spacing:0.3em;color:#8a6d2f;text-align:center}
+      .receipt-store-sub{font-size:10px;letter-spacing:0.15em;color:#555;text-align:center;margin-top:2px}
+      .receipt-divider{border:none;border-top:1px dashed #ccc;margin:10px 0}
+      .receipt-divider-solid{border:none;border-top:2px solid #1a1a1a;margin:10px 0}
+      .receipt-meta{font-size:10px;color:#555;margin-bottom:10px}
+      .receipt-meta-row{display:flex;justify-content:space-between}
+      .receipt-item-row{display:flex;justify-content:space-between;padding:2px 0}
+      .receipt-item-name{flex:1}.receipt-item-qty{color:#555;width:40px;text-align:center}
+      .receipt-item-price{width:80px;text-align:right}
+      .receipt-summary-row{display:flex;justify-content:space-between;font-size:11px;color:#444;padding:2px 0}
+      .receipt-total-row{display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:2px solid #1a1a1a;margin-top:8px;padding-top:8px}
+      .receipt-method{text-align:center;margin-top:10px;font-size:11px;color:#555}
+      .receipt-footer{text-align:center;margin-top:14px;font-size:10px;color:#888;line-height:1.7}
+      .receipt-logo{text-align:center;margin-bottom:16px}
+      .receipt-credit-note{background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#856404;text-align:center}
+    </style>
+    </head><body>${html}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script></body></html>
+  `);
+  win.document.close();
+}
+
+function downloadReceiptPDF() {
+  const txn = window._currentReceiptTxn;
+  if (!txn) return;
+  // Use browser's print-to-PDF via a hidden iframe
+  const html = buildReceiptHTML(txn);
+  let frame = document.getElementById('pdfFrame');
+  if (!frame) {
+    frame = document.createElement('iframe');
+    frame.id = 'pdfFrame';
+    frame.style.cssText = 'position:fixed;left:-9999px;top:0;width:400px;height:800px;border:none;';
+    document.body.appendChild(frame);
+  }
+  frame.srcdoc = `<!DOCTYPE html><html><head>
+    <meta charset="UTF-8"><title>Receipt ${txn.id}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+      @page{size:80mm auto;margin:0}
+      body{margin:0;background:#fff;font-family:'Courier New',monospace}
+      .receipt-paper{padding:20px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;color:#1a1a1a}
+      .receipt-store-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:0.3em;color:#8a6d2f;text-align:center}
+      .receipt-store-sub{font-size:9px;letter-spacing:0.15em;color:#555;text-align:center;margin-top:2px}
+      .receipt-divider{border:none;border-top:1px dashed #ccc;margin:8px 0}
+      .receipt-divider-solid{border:none;border-top:2px solid #1a1a1a;margin:8px 0}
+      .receipt-meta{font-size:9px;color:#555;margin-bottom:8px}
+      .receipt-meta-row{display:flex;justify-content:space-between}
+      .receipt-item-row{display:flex;justify-content:space-between;padding:1px 0;font-size:10px}
+      .receipt-item-name{flex:1}.receipt-item-qty{color:#555;width:36px;text-align:center}
+      .receipt-item-price{width:72px;text-align:right}
+      .receipt-summary-row{display:flex;justify-content:space-between;font-size:10px;color:#444;padding:2px 0}
+      .receipt-total-row{display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:2px solid #1a1a1a;margin-top:6px;padding-top:6px}
+      .receipt-method{text-align:center;margin-top:8px;font-size:10px;color:#555}
+      .receipt-footer{text-align:center;margin-top:12px;font-size:9px;color:#888;line-height:1.7}
+      .receipt-logo{text-align:center;margin-bottom:12px}
+      .receipt-credit-note{background:#fff3cd;border:1px solid #ffc107;padding:6px 10px;margin-bottom:8px;font-size:10px;color:#856404;text-align:center}
+    </style></head><body>${html}
+    <script>window.onload=()=>window.print()<\/script></body></html>`;
+  setTimeout(() => {
+    try { frame.contentWindow.print(); } catch(e) {}
+  }, 800);
+  toast('⬇ Opening PDF export…');
+}
+
+
+//  RETURNS & DAMAGED GOODS
+
+let currentReturnTxn = null;
+let currentReturnType = 'return';
+
+function renderReturnsTable() {
+  const q = (document.getElementById('returnsSearchInput')?.value || '').toLowerCase();
+  const list = q
+    ? transactions.filter(t =>
+        t.id.toLowerCase().includes(q) ||
+        t.customer.toLowerCase().includes(q) ||
+        t.items.some(i => i.name.toLowerCase().includes(q)))
+    : transactions;
+
+  const empty = document.getElementById('returnsEmpty');
+  const table = document.getElementById('returnsTable');
+  if (!transactions.length) { empty.style.display='block'; table.style.display='none'; return; }
+  empty.style.display='none'; table.style.display='table';
+
+  const cur = storeConfig.currency || 'KES';
+  document.getElementById('returnsTableBody').innerHTML = list.map(t => {
+    const date = new Date(t.date).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric' });
+    const itemsSummary = t.items.slice(0,2).map(i => i.name).join(', ')
+      + (t.items.length > 2 ? ` +${t.items.length-2} more` : '');
+    const hasReturns = t.returns && t.returns.length > 0;
+    const statusBadge = hasReturns
+      ? `<span class="badge badge-returned">Returned</span>`
+      : `<span class="badge badge-complete">Complete</span>`;
+    return `<tr>
+      <td style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold)">${t.id}</td>
+      <td style="font-size:11px">${date}</td>
+      <td style="font-size:11px">${t.customer}</td>
+      <td style="font-size:11px;color:var(--text-dim)">${itemsSummary}</td>
+      <td class="td-price">${cur} ${t.total.toLocaleString()}</td>
+      <td>${statusBadge}</td>
+      <td><div class="td-actions">
+        <div class="icon-btn" onclick="showReceiptModal('${t.id}')" title="View Receipt">🧾</div>
+        <div class="icon-btn" onclick="openReturnModal('${t.id}')" title="Process Return">↩</div>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openReturnModal(txnId) {
+  const txn = transactions.find(t => t.id === txnId);
+  if (!txn) return;
+  currentReturnTxn = txn;
+  currentReturnType = 'return';
+
+  const date = new Date(txn.date).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric' });
+  document.getElementById('returnReceiptInfo').innerHTML = `
+    <div class="receipt-meta-row"><span><strong>Receipt:</strong></span><span style="font-family:'Courier New',monospace">${txn.id}</span></div>
+    <div class="receipt-meta-row"><span><strong>Date:</strong></span><span>${date}</span></div>
+    <div class="receipt-meta-row"><span><strong>Customer:</strong></span><span>${txn.customer}</span></div>
+    <div class="receipt-meta-row"><span><strong>Total:</strong></span><span>${storeConfig.currency||'KES'} ${txn.total.toLocaleString()}</span></div>
+  `;
+
+  // Reset type buttons
+  document.querySelectorAll('.return-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === 'return'));
+
+  // Render item checkboxes
+  document.getElementById('returnItemsList').innerHTML = txn.items.map((item, idx) =>
+    `<div class="return-item-row">
+      <input type="checkbox" class="return-item-check" id="ri_${idx}" checked>
+      <label class="return-item-name" for="ri_${idx}">${item.emoji} ${item.name} <small style="color:var(--text-faint)">${item.sku}</small></label>
+      <span class="return-item-qty">×${item.qty}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('returnNotes').value = '';
+  document.getElementById('returnModal').style.display = 'flex';
+}
+
+function closeReturnModal() {
+  document.getElementById('returnModal').style.display = 'none';
+  currentReturnTxn = null;
+}
+
+function selectReturnType(type) {
+  currentReturnType = type;
+  document.querySelectorAll('.return-type-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.type === type));
+}
+
+function confirmReturn() {
+  if (!currentReturnTxn) return;
+  const checkedItems = currentReturnTxn.items.filter((_, idx) => {
+    const el = document.getElementById(`ri_${idx}`);
+    return el && el.checked;
+  });
+  if (!checkedItems.length) { toast('⚠ Select at least one item to return'); return; }
+
+  const notes = document.getElementById('returnNotes').value.trim();
+  const returnRecord = {
+    date: new Date().toISOString(),
+    type: currentReturnType,
+    items: checkedItems,
+    notes,
+    creditNoteId: 'CN-' + Date.now().toString(36).toUpperCase()
+  };
+
+  // Restock items if return or damaged
+  if (currentReturnType === 'return' || currentReturnType === 'damaged') {
+    checkedItems.forEach(ri => {
+      const p = products.find(x => x.id === ri.id);
+      if (p) p.stock += ri.qty;
+    });
+  }
+
+  currentReturnTxn.returns.push(returnRecord);
+  currentReturnTxn.status = 'returned';
+
+  // Show credit note receipt
+  const creditTxn = {
+    ...currentReturnTxn,
+    id: returnRecord.creditNoteId,
+    date: returnRecord.date,
+    items: checkedItems,
+    subtotal: checkedItems.reduce((s,i) => s + i.price*i.qty, 0),
+    discount: 0,
+    vat: 0,
+    total: checkedItems.reduce((s,i) => s + i.price*i.qty, 0),
+  };
+
+  closeReturnModal();
+  renderInventoryTable();
+  toast(`✓ Return processed — ${returnRecord.creditNoteId}`);
+  renderReturnsTable();
+
+  // Show credit note
+  window._currentReceiptTxn = creditTxn;
+  document.getElementById('receiptContent').innerHTML = buildReceiptHTML(creditTxn, true);
+  document.getElementById('receiptModal').style.display = 'flex';
+}
+
+
+//  VOICE COMMAND INPUT
+let recognition = null;
+let voiceActive = false;
+
+function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { toast('⚠ Voice not supported in this browser (try Chrome/Edge)'); return null; }
+  const r = new SpeechRecognition();
+  r.continuous = true;
+  r.interimResults = true;
+  r.lang = 'en-KE';
+  r.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    document.getElementById('voiceTranscript').textContent = final || interim || 'Listening…';
+    if (final) processVoiceCommand(final.trim().toLowerCase());
+  };
+  r.onerror = err => {
+    if (err.error !== 'no-speech') { toast('🎙 Voice error: ' + err.error); stopVoice(); }
+  };
+  r.onend = () => { if (voiceActive) r.start(); };
+  return r;
+}
+
+function toggleVoice() {
+  if (voiceActive) { stopVoice(); return; }
+  recognition = initVoice();
+  if (!recognition) return;
+  voiceActive = true;
+  recognition.start();
+  document.getElementById('voiceBtn').classList.add('listening');
+  document.getElementById('voiceOverlay').style.display = 'flex';
+  document.getElementById('voiceTranscript').textContent = 'Listening…';
+  document.getElementById('voiceStatus').style.display = 'flex';
+}
+
+function stopVoice() {
+  voiceActive = false;
+  if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+  document.getElementById('voiceBtn').classList.remove('listening');
+  document.getElementById('voiceOverlay').style.display = 'none';
+  document.getElementById('voiceStatus').style.display = 'none';
+}
+
+function processVoiceCommand(cmd) {
+  // "add [product name]"
+  if (cmd.startsWith('add ')) {
+    const query = cmd.slice(4).trim();
+    const found = products.find(p => p.name.toLowerCase().includes(query) && p.stock > 0);
+    if (found) { addToCart(found.id); document.getElementById('voiceTranscript').textContent = `✓ Added: ${found.name}`; return; }
+    toast(`🎙 No match for "${query}"`);
+    return;
+  }
+  // "search [term]"
+  if (cmd.startsWith('search ')) {
+    const q = cmd.slice(7).trim();
+    document.getElementById('searchInput').value = q;
+    filterProducts();
+    stopVoice();
+    return;
+  }
+  // "clear cart"
+  if (cmd.includes('clear cart') || cmd.includes('empty cart')) {
+    clearCart(); stopVoice(); toast('🎙 Cart cleared'); return;
+  }
+  // "checkout" / "pay"
+  if (cmd.includes('checkout') || cmd.includes('proceed') || cmd.includes('pay now')) {
+    if (cart.length) { openPayment(); stopVoice(); }
+    else toast('🎙 Cart is empty'); return;
+  }
+  // "show all" / "all items"
+  if (cmd.includes('show all') || cmd.includes('all items')) {
+    selectCat('all'); stopVoice(); return;
+  }
+  // Category navigation
+  for (const cat of categories) {
+    if (cmd.includes(cat.label.toLowerCase())) {
+      selectCat(cat.id); stopVoice(); return;
+    }
+  }
 }
 
 // ── BOOT ──
