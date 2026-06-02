@@ -54,6 +54,24 @@
 </div>
 <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJsonFile(event)">
 
+<!-- M-PESA PENDING TRAY -->
+<div id="mpesaTray" style="display:none" class="mpesa-tray">
+  <div class="mpesa-tray-header">
+    <span>📱 M-Pesa Pending</span>
+    <span class="mpesa-tray-hint">Cart is clear — serve the next customer freely</span>
+  </div>
+  <div class="mpesa-tray-list"></div>
+</div>
+
+<!-- EXCHANGE BANNER -->
+<div id="exchangeBanner" style="display:none" class="exchange-banner">
+  <span>🔄 Exchange in progress — Credit: <strong id="exchangeCreditAmt">KES 0</strong> · CN: <span id="exchangeCNId"></span></span>
+  <div style="display:flex;gap:8px">
+    <button class="json-link-btn" onclick="applyExchangeCredit()">✓ Apply Credit</button>
+    <button class="json-link-btn" onclick="cancelExchange()">✕ Cancel</button>
+  </div>
+</div>
+
 <!-- POS VIEW -->
 <div id="posView" class="main">
   <div class="catalogue">
@@ -124,7 +142,7 @@
 </div>
 
 <!-- INVENTORY VIEW -->
-<div id="inventoryView">
+<div id="inventoryView" style="display:none">
   <div class="inv-header">
     <div class="inv-title">Inventory</div>
     <div class="inv-controls">
@@ -158,7 +176,7 @@
 </div>
 
 <!-- RETURNS VIEW -->
-<div id="returnsView">
+<div id="returnsView" style="display:none">
   <div class="inv-header">
     <div class="inv-title">Returns & Adjustments</div>
     <div class="inv-controls">
@@ -335,6 +353,9 @@
         <div class="amount-label">Amount Due</div>
         <div class="amount-value"><span class="amount-currency">KES </span><span id="payAmount">0</span></div>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="split-toggle-btn" id="splitToggleBtn" onclick="toggleSplit()">⊕ Split Payment</button>
+      </div>
       <div class="pay-methods">
         <div class="pay-method active" id="pm_cash" onclick="selectPayMethod('cash')">
           <div class="pay-method-icon">💵</div>
@@ -371,6 +392,36 @@
           <input class="form-input" id="mpesaPhone" placeholder="07XX XXX XXX" style="font-size:15px;padding:12px">
         </div>
         <div style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em;text-align:center;padding:8px 0">Customer will receive an STK push on their phone</div>
+      </div>
+      <div class="split-section" id="splitSection" style="display:none">
+        <div class="form-row-split" style="gap:10px;margin-bottom:10px">
+          <div class="form-row" style="margin-bottom:0">
+            <label class="form-label">Method 1</label>
+            <select class="form-select" id="splitMethod1" onchange="updateSplitCalc()">
+              <option value="cash">💵 Cash</option>
+              <option value="card">💳 Card</option>
+              <option value="mpesa">📱 M-Pesa</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:0">
+            <label class="form-label">Amount (KES)</label>
+            <input class="form-input" id="splitAmount1Input" type="number" placeholder="0" oninput="updateSplitCalc()">
+          </div>
+        </div>
+        <div class="form-row-split" style="gap:10px">
+          <div class="form-row" style="margin-bottom:0">
+            <label class="form-label">Method 2</label>
+            <select class="form-select" id="splitMethod2" onchange="updateSplitCalc()">
+              <option value="mpesa">📱 M-Pesa</option>
+              <option value="cash">💵 Cash</option>
+              <option value="card">💳 Card</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:0">
+            <label class="form-label">Remainder</label>
+            <div class="split-remainder" id="splitRemainder">KES 0</div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -477,45 +528,80 @@
   </div>
 </div>
 
+
+
+
+<!-- TRANSACTION ERROR MODAL -->
+<div class="overlay" id="txnErrorModal" style="display:none">
+  <div class="modal txn-error-modal" onclick="event.stopPropagation()">
+    <div class="modal-header" style="border-bottom:none;flex-direction:column;align-items:center;gap:6px;padding-bottom:0">
+      <div style="font-size:42px">⚠️</div>
+      <div class="modal-title" id="txnErrorTitle">Transaction Failed</div>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <p id="txnErrorBody" style="font-size:13px;color:var(--text-dim);letter-spacing:0.04em;line-height:1.7;margin:0"></p>
+    </div>
+    <div class="modal-footer" id="txnErrorActions" style="flex-wrap:wrap;gap:8px;justify-content:center"></div>
+  </div>
+</div>
+
+<!-- VOID TRANSACTION MODAL -->
+<div class="overlay" id="voidModal" style="display:none">
+  <div class="modal" style="width:440px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Void Transaction</div>
+      <button class="modal-close" onclick="document.getElementById('voidModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(200,60,60,0.1);border:1px solid var(--danger);border-radius:var(--radius);padding:12px 16px;font-size:12px;color:var(--danger);line-height:1.7;margin-bottom:14px">
+        <strong>⚠ This cannot be undone.</strong> Stock will be reversed and the transaction marked voided.
+        <br>Transaction: <strong id="voidTxnRef"></strong>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Manager</label>
+        <input class="form-input" id="voidManagerName" readonly style="opacity:0.6">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Reason <span style="color:var(--danger)">*</span></label>
+        <input class="form-input" id="voidReason" placeholder="e.g. Wrong item scanned, duplicate charge…">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('voidModal').style.display='none'">Cancel</button>
+      <button style="background:rgba(200,60,60,0.12);border:1px solid var(--danger);border-radius:var(--radius);color:var(--danger);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.08em;padding:10px 24px;cursor:pointer" onclick="confirmVoid()">Confirm Void</button>
+    </div>
+  </div>
+</div>
+
 <!-- BACKUP / RESTORE MODAL -->
 <div class="overlay" id="backupModal" style="display:none">
-  <div class="modal backup-modal" onclick="event.stopPropagation()">
+  <div class="modal" style="width:480px" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title">Backup &amp; Restore</div>
       <button class="modal-close" onclick="document.getElementById('backupModal').style.display='none'">✕</button>
     </div>
     <div class="modal-body">
-
-      <div class="backup-explainer">
-        <div class="backup-explainer-icon">💡</div>
-        <div>
-          <strong>What this does:</strong> Your products and sales live only in <em>this browser</em> on <em>this device</em>. A backup saves everything into one file you can store safely or copy to another device.
-          <br><br>
-          <strong>When to use it:</strong> End of day, before switching laptops, or whenever you want a safety copy. Think of it like a daily save.
-        </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:var(--gold-dim);border:1px solid var(--border-gold);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px;font-size:12px;color:var(--text-dim);line-height:1.7">
+        <span style="font-size:20px;flex-shrink:0">💡</span>
+        <div>Your data lives only in <em>this browser</em>. A backup saves everything to a file you can copy to another device or keep as a daily snapshot.</div>
       </div>
-
-      <div class="backup-info" id="backupStats"></div>
-
-      <div class="backup-section">
-        <div class="backup-section-title">📦 Download Backup</div>
-        <div class="backup-section-desc">Saves everything — products, all sales history, cashier shift logs — into one file on your computer. Keep it in Google Drive or a USB stick.</div>
-        <button class="btn-gold" onclick="downloadFullBackup()" style="width:100%;margin-top:10px">⬇ Save Backup to My Computer</button>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:11px;color:var(--text-faint);letter-spacing:0.06em;margin-bottom:16px" id="backupStats"></div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;margin-bottom:6px">📦 Download Backup</div>
+        <div style="font-size:11px;color:var(--text-faint);line-height:1.6;margin-bottom:10px">Saves products, all sales history, and cashier sessions to one file.</div>
+        <button class="btn-gold" onclick="downloadFullBackup()" style="width:100%">⬇ Save Backup to My Computer</button>
       </div>
-
-      <div class="backup-section backup-manager-only">
-        <div class="backup-section-title">📂 Load a Backup File</div>
-        <div class="backup-section-desc">Moving to a new device or browser? Pick the backup file you downloaded before. <strong style="color:var(--danger)">Replaces everything currently in the app.</strong></div>
-        <button class="btn-outline" onclick="triggerRestoreFile()" style="width:100%;margin-top:10px">📂 Choose Backup File…</button>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px" class="backup-manager-only">
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;margin-bottom:6px">📂 Load a Backup File</div>
+        <div style="font-size:11px;color:var(--text-faint);line-height:1.6;margin-bottom:10px">Pick a backup file from your computer. <strong style="color:var(--danger)">Replaces everything currently in the app.</strong></div>
+        <button class="btn-outline" onclick="triggerRestoreFile()" style="width:100%">📂 Choose Backup File…</button>
         <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
       </div>
-
-      <div class="backup-section backup-manager-only" style="border-color:rgba(200,60,60,0.3)">
-        <div class="backup-section-title" style="color:var(--danger)">⚠ Reset App Data</div>
-        <div class="backup-section-desc">Wipes everything and returns to the sample catalogue. Only do this if you want a completely fresh start. Download a backup first.</div>
-        <button class="btn-danger" onclick="clearLocalStorage()" style="width:100%;margin-top:10px">🗑 Wipe &amp; Reset</button>
+      <div style="border:1px solid rgba(200,60,60,0.3);border-radius:var(--radius-lg);padding:14px 16px" class="backup-manager-only">
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;color:var(--danger);margin-bottom:6px">⚠ Reset App Data</div>
+        <div style="font-size:11px;color:var(--text-faint);line-height:1.6;margin-bottom:10px">Wipes everything and returns to sample catalogue. Download a backup first.</div>
+        <button style="background:rgba(200,60,60,0.12);border:1px solid var(--danger);border-radius:var(--radius);color:var(--danger);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.08em;padding:10px;width:100%;cursor:pointer" onclick="clearLocalStorage()">🗑 Wipe &amp; Reset</button>
       </div>
-
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="document.getElementById('backupModal').style.display='none'">Close</button>

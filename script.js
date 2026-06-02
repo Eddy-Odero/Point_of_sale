@@ -24,8 +24,53 @@ const LS = {
 };
 let offlineQueue = [];
 let netStatus = 'online';
+let transactions  = [];
+let lastTxnId     = null;
+let pendingMpesa  = {};
+let lastCartHash  = '';
+let lastTxnTime   = 0;
+let splitMode     = false;
+let splitMethod1  = 'cash';
+let splitMethod2  = 'mpesa';
+let splitAmount1  = 0;
 
 //  BOOT — load maison-data.json
+
+function lsSet(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
+function lsGet(key){try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}}
+
+function persistAll(){
+  lsSet('tinah_config',storeConfig); lsSet('tinah_categories',categories);
+  lsSet('tinah_products',products);  lsSet('tinah_cashiers',cashiers);
+  lsSet('tinah_transactions',transactions); lsSet('tinah_sessions',allSessions);
+}
+
+// ── Network status — drives the existing cashier-dot colour ──
+function initNetwork(){
+  updateNetDot();
+  window.addEventListener('online', ()=>{ netStatus='online';  updateNetDot(); });
+  window.addEventListener('offline',()=>{ netStatus='offline'; updateNetDot(); });
+  setInterval(probeConnection,30000);
+  probeConnection();
+}
+
+function probeConnection(){
+  const t0=Date.now();
+  fetch('https://www.gstatic.com/generate_204',{mode:'no-cors',cache:'no-store'})
+    .then(()=>{ netStatus=Date.now()-t0>2000?'weak':'online'; updateNetDot(); })
+    .catch(()=>{ netStatus='offline'; updateNetDot(); });
+}
+
+function updateNetDot(){
+  const dot=document.getElementById('netDot'); if(!dot) return;
+  dot.classList.remove('net-online','net-weak','net-offline');
+  dot.classList.add('net-'+netStatus);
+  dot.title={online:'Online',weak:'Slow connection',offline:'Offline'}[netStatus]||netStatus;
+}
+
+// (backup/restore moved to main block)
+
+
 async function boot() {
   setLoadStatus('Loading product data…');
   const saved = lsGet('tinah_products');
@@ -154,11 +199,11 @@ function updateClock() {
 
 //  TABS
 function switchView(v) {
-  document.getElementById('posView').classList.toggle('hidden', v !== 'pos');
-  document.getElementById('inventoryView').classList.toggle('active', v === 'inventory');
-  document.getElementById('returnsView').classList.toggle('active', v === 'returns');
+  document.getElementById('posView').style.display        = v === 'pos'       ? ''      : 'none';
+  document.getElementById('inventoryView').style.display  = v === 'inventory' ? 'flex'  : 'none';
+  document.getElementById('returnsView').style.display    = v === 'returns'   ? 'flex'  : 'none';
   document.querySelectorAll('.tab-btn').forEach((b,i) =>
-    b.classList.toggle('active', (i===0 && v==='pos') || (i===1 && v==='inventory') || (i===2 && v==='returns')));
+    b.classList.toggle('active', (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')));
   if (v === 'inventory') renderInventoryTable();
   if (v === 'returns') renderReturnsTable();
 }
@@ -490,7 +535,7 @@ function saveItem() {
   document.getElementById('productCount').textContent = products.length;
   closeItemModal(); filterProducts(); renderCart();
   if (document.getElementById('inventoryView').classList.contains('active')) renderInventoryTable();
-  lsSet('tinah_products', products);
+  lsSet(LS.products, products);
 }
 
 function deleteProduct(id) {
@@ -504,7 +549,7 @@ function deleteProduct(id) {
   filterProducts();
   renderCart();
   if (document.getElementById('inventoryView').classList.contains('active')) renderInventoryTable();
-  lsSet('tinah_products', products);
+  lsSet(LS.products, products);
   toast(`✓ ${p.name} removed`);
 }
 
@@ -547,15 +592,7 @@ function getTotal() {
   return (sub - discountAmt) * (1 + vr);
 }
 
-function openPayment() {
-  const cur = storeConfig.currency || 'KES';
-  document.getElementById('payAmount').textContent = Math.round(getTotal()).toLocaleString();
-  document.getElementById('cashTendered').value = '';
-  document.getElementById('changeVal').textContent = `${cur} 0.00`;
-  buildNumpad();
-  document.getElementById('paymentModal').style.display = 'flex';
-  selectPayMethod('cash');
-}
+// openPayment — replaced below
 
 function closePayment() { document.getElementById('paymentModal').style.display = 'none'; }
 
@@ -591,30 +628,7 @@ function numpadPress(k) {
   calcChange();
 }
 
-function completePayment() {
-  if (payMethod === 'cash') {
-    const total = getTotal();
-    const tendered = parseFloat(document.getElementById('cashTendered').value) || 0;
-    if (tendered < total) { toast('⚠ Insufficient cash tendered'); return; }
-  }
-  cart.forEach(item => {
-    const p = products.find(x => x.id === item.id);
-    if (p) p.stock = Math.max(0, p.stock - item.qty);
-  });
-
-  const txn = buildTransaction();
-  transactions.unshift(txn);
-  lastTxnId = txn.id;
-  // Credit this sale to the active session
-  if (activeSession) {
-    activeSession.sales++; activeSession.revenue+=txn.total; activeSession.discounts+=txn.discount;
-    lsSet('tinah_sessions', allSessions);
-  }
-  lsSet('tinah_products', products);
-  lsSet('tinah_transactions', transactions);
-  closePayment();
-  showSuccess();
-}
+// completePayment — replaced below
 
 function showSuccess() {
   const cur = storeConfig.currency || 'KES';
@@ -713,8 +727,6 @@ function getSeedData() {
 
 //  TRANSACTIONS & RECEIPT SYSTEM
 
-let transactions = [];
-let lastTxnId = null;
 
 function buildTransaction() {
   const vr = storeConfig.vat_rate || 0.16;
@@ -1232,7 +1244,7 @@ function submitPin() {
     discounts: 0
   };
   allSessions.push(activeSession);
-  lsSet('tinah_sessions', allSessions);
+  lsSet(LS.sessions, allSessions);
   document.getElementById('cashierPickerModal').style.display = 'none';
   init();
   toast(`✓ Welcome, ${c.name}! (${c.role})`);
@@ -1270,19 +1282,244 @@ function closeShiftSummary() {
 
 
 // ── localStorage helpers ──
-function lsSet(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
-function lsGet(key){try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}}
 
-function persistAll(){
-  lsSet('tinah_config',storeConfig); lsSet('tinah_categories',categories);
-  lsSet('tinah_products',products);  lsSet('tinah_cashiers',cashiers);
-  lsSet('tinah_transactions',transactions); lsSet('tinah_sessions',allSessions);
+// ── PAYMENT INTEGRITY ──
+
+function cartHash() {
+  return cart.map(i=>i.id+':'+i.qty).sort().join('|')+':'+Math.round(getTotal());
 }
 
-// ── Network status — drives the existing cashier-dot colour ──
+function openPayment() {
+  const cur = storeConfig.currency || 'KES';
+  document.getElementById('payAmount').textContent = Math.round(getTotal()).toLocaleString();
+  document.getElementById('cashTendered').value = '';
+  document.getElementById('changeVal').textContent = cur+' 0.00';
+  buildNumpad();
+  splitMode=false; splitAmount1=0;
+  const stBtn=document.getElementById('splitToggleBtn');
+  const stSec=document.getElementById('splitSection');
+  if(stBtn) stBtn.classList.remove('active');
+  if(stSec) stSec.style.display='none';
+  document.getElementById('paymentModal').style.display='flex';
+  selectPayMethod('cash');
+}
+
+function toggleSplit() {
+  splitMode=!splitMode;
+  document.getElementById('splitToggleBtn').classList.toggle('active',splitMode);
+  document.getElementById('splitSection').style.display=splitMode?'block':'none';
+  if(splitMode) updateSplitCalc();
+}
+
+function updateSplitCalc() {
+  const total=Math.round(getTotal());
+  splitAmount1=parseFloat(document.getElementById('splitAmount1Input').value)||0;
+  const rem=Math.max(0,total-splitAmount1);
+  const cur=storeConfig.currency||'KES';
+  document.getElementById('splitRemainder').textContent=cur+' '+rem.toLocaleString();
+  splitMethod1=document.getElementById('splitMethod1').value;
+  splitMethod2=document.getElementById('splitMethod2').value;
+}
+
+function completePayment() {
+  const total=Math.round(getTotal());
+  const hash=cartHash();
+  if(hash===lastCartHash && Date.now()-lastTxnTime<10000){ showTxnError('duplicate',null); return; }
+  if((payMethod==='cash'&&!splitMode)||(splitMode&&splitMethod1==='cash')){
+    const tendered=parseFloat(document.getElementById('cashTendered').value)||0;
+    const needed=splitMode?splitAmount1:total;
+    if(tendered<needed){ toast('⚠ Insufficient cash tendered'); return; }
+  }
+  const usesMpesa=(payMethod==='mpesa'&&!splitMode)||(splitMode&&(splitMethod1==='mpesa'||splitMethod2==='mpesa'));
+  if(usesMpesa){
+    const phone=document.getElementById('mpesaPhone').value.trim();
+    if(!phone){ toast('⚠ Enter M-Pesa phone number'); return; }
+    // Only queue when offline or weak — online M-Pesa completes immediately
+    if(netStatus==='offline' || netStatus==='weak'){
+      startMpesaPending(phone,total);
+    } else {
+      finalisePayment();
+      toast('📱 M-Pesa confirmed — STK sent to '+phone);
+    }
+    return;
+  }
+  finalisePayment();
+}
+
+function finalisePayment() {
+  cart.forEach(item=>{ const p=products.find(x=>x.id===item.id); if(p) p.stock=Math.max(0,p.stock-item.qty); });
+  const txn=buildTransaction();
+  transactions.unshift(txn); lastTxnId=txn.id;
+  lastCartHash=cartHash(); lastTxnTime=Date.now();
+  if(activeSession){
+    activeSession.sales++; activeSession.revenue+=txn.total; activeSession.discounts+=txn.discount;
+    lsSet(LS.sessions,allSessions);
+  }
+  lsSet(LS.products,products); lsSet(LS.transactions,transactions);
+  splitMode=false; splitAmount1=0;
+  closePayment(); showSuccess();
+}
+
+function startMpesaPending(phone,total) {
+  cart.forEach(item=>{ const p=products.find(x=>x.id===item.id); if(p) p.stock=Math.max(0,p.stock-item.qty); });
+  const txn=buildTransaction('pending'); txn.mpesaPhone=phone;
+  transactions.unshift(txn);
+  if(activeSession){ activeSession.sales++; activeSession.revenue+=txn.total; activeSession.discounts+=txn.discount; lsSet(LS.sessions,allSessions); }
+  lsSet(LS.products,products); lsSet(LS.transactions,transactions);
+  closePayment(); clearCart(); document.getElementById('customerName').value='';
+  addPendingBar(txn,phone,total);
+  toast('📱 STK sent to '+phone+' — serve next customer while waiting');
+}
+
+function addPendingBar(txn,phone,total) {
+  const cur=storeConfig.currency||'KES';
+  const tray=document.getElementById('mpesaTray');
+  if(!tray) return;
+  tray.style.display='block';
+  const card=document.createElement('div');
+  card.className='mpesa-card'; card.id='mpesa-card-'+txn.id;
+  card.innerHTML=`
+    <div class="mpesa-card-top">
+      <span class="mpesa-card-icon">📱</span>
+      <div class="mpesa-card-info">
+        <div class="mpesa-card-title">${txn.customer} · ${phone}</div>
+        <div class="mpesa-card-amt">${cur} ${total.toLocaleString()}</div>
+      </div>
+      <div class="mpesa-card-timer" id="mpesa-timer-${txn.id}">60s</div>
+    </div>
+    <div class="mpesa-card-id">${txn.id}</div>
+    <div class="mpesa-card-actions">
+      <button class="btn-gold" style="flex:1;padding:7px" onclick="confirmMpesaById('${txn.id}')">✓ Paid</button>
+      <button class="btn-outline" style="flex:1;padding:7px" onclick="cancelMpesaById('${txn.id}')">✕ Cancel</button>
+    </div>`;
+  tray.querySelector('.mpesa-tray-list').prepend(card);
+  let secs=60;
+  const iv=setInterval(()=>{
+    secs--;
+    const el=document.getElementById('mpesa-timer-'+txn.id);
+    if(el){ el.textContent=secs+'s'; el.style.color=secs<=15?'var(--danger)':''; }
+    if(secs<=0){
+      clearInterval(iv); delete pendingMpesa[txn.id];
+      txn.status='failed'; txn.failReason='timeout'; lsSet(LS.transactions,transactions);
+      removePendingCard(txn.id); showTxnError('mpesa_timeout',txn);
+    }
+  },1000);
+  pendingMpesa[txn.id]={iv,txn};
+}
+
+function removePendingCard(txnId) {
+  const card=document.getElementById('mpesa-card-'+txnId); if(card) card.remove();
+  const tray=document.getElementById('mpesaTray');
+  if(tray && !tray.querySelector('.mpesa-card')) tray.style.display='none';
+}
+
+function confirmMpesaById(txnId) {
+  const entry=pendingMpesa[txnId]; if(!entry) return;
+  clearInterval(entry.iv); delete pendingMpesa[txnId];
+  entry.txn.status='complete'; entry.txn.mpesaConfirmedAt=new Date().toISOString();
+  lsSet(LS.transactions,transactions);
+  removePendingCard(txnId);
+  const cur=storeConfig.currency||'KES';
+  toast('✓ M-Pesa confirmed — '+entry.txn.customer+' · '+cur+' '+entry.txn.total.toLocaleString());
+}
+
+function cancelMpesaById(txnId) {
+  const entry=pendingMpesa[txnId];
+  if(entry){ clearInterval(entry.iv); delete pendingMpesa[txnId]; }
+  const txn=entry?entry.txn:transactions.find(t=>t.id===txnId);
+  if(txn){
+    txn.items.forEach(item=>{ const p=products.find(x=>x.id===item.id); if(p) p.stock+=item.qty; });
+    txn.status='failed'; txn.failReason='cancelled';
+    if(activeSession){ activeSession.sales=Math.max(0,activeSession.sales-1); activeSession.revenue=Math.max(0,activeSession.revenue-txn.total); lsSet(LS.sessions,allSessions); }
+    lsSet(LS.products,products); lsSet(LS.transactions,transactions);
+  }
+  removePendingCard(txnId);
+  toast('M-Pesa cancelled — stock restored');
+}
+
+function retryMpesa() { document.getElementById('txnErrorModal').style.display='none'; openPayment(); selectPayMethod('mpesa'); }
+function switchToCash() { document.getElementById('txnErrorModal').style.display='none'; openPayment(); selectPayMethod('cash'); }
+
+function showTxnError(type,txn) {
+  const msgs={
+    duplicate:      {title:'Duplicate Sale Detected',  body:'Same cart charged less than 10 seconds ago. Is this genuinely a new sale?', actions:'<button class="btn-gold" onclick="proceedDuplicate()">Yes, charge again</button><button class="btn-cancel" onclick="closeTxnError()">Cancel</button>'},
+    mpesa_timeout:  {title:'M-Pesa Timed Out',         body:'STK push not confirmed in 60 seconds. Items still in cart.',                actions:'<button class="btn-gold" onclick="retryMpesa()">🔄 Retry M-Pesa</button><button class="btn-outline" onclick="switchToCash()">💵 Switch to Cash</button><button class="btn-cancel" onclick="closeTxnError()">Cancel</button>'},
+    mpesa_rejected: {title:'M-Pesa Rejected',          body:'Customer declined or wrong PIN. Stock not deducted.',                       actions:'<button class="btn-gold" onclick="retryMpesa()">🔄 Retry</button><button class="btn-outline" onclick="switchToCash()">💵 Switch to Cash</button><button class="btn-cancel" onclick="closeTxnError()">Cancel</button>'},
+    card_declined:  {title:'Card Declined',            body:'Terminal declined. Stock not deducted.',                                    actions:'<button class="btn-gold" onclick="closeTxnError();openPayment()">🔄 Try Again</button><button class="btn-outline" onclick="switchToCash()">💵 Switch to Cash</button><button class="btn-cancel" onclick="closeTxnError()">Cancel</button>'},
+  };
+  const m=msgs[type]||msgs.mpesa_timeout;
+  document.getElementById('txnErrorTitle').textContent=m.title;
+  document.getElementById('txnErrorBody').textContent=m.body;
+  document.getElementById('txnErrorActions').innerHTML=m.actions;
+  if(txn){ txn.status='failed'; txn.failReason=type; lsSet(LS.transactions,transactions); }
+  document.getElementById('txnErrorModal').style.display='flex';
+}
+function closeTxnError(){ document.getElementById('txnErrorModal').style.display='none'; }
+function proceedDuplicate(){ closeTxnError(); lastCartHash=''; finalisePayment(); }
+
+// ── EXCHANGE & VOID ──
+
+function startExchange(returnRecord) {
+  const credit=returnRecord.creditValue; const cur=storeConfig.currency||'KES';
+  clearCart(); window._exchangeCredit=credit; window._exchangeCreditNoteId=returnRecord.creditNoteId;
+  document.getElementById('customerName').value=currentReturnTxn?currentReturnTxn.customer:'';
+  const banner=document.getElementById('exchangeBanner');
+  if(banner){ banner.style.display='flex';
+    document.getElementById('exchangeCreditAmt').textContent=cur+' '+credit.toLocaleString();
+    document.getElementById('exchangeCNId').textContent=returnRecord.creditNoteId; }
+  switchView('pos');
+  toast('Exchange started — credit: '+cur+' '+credit.toLocaleString()+'. Add items to cart.');
+}
+
+function cancelExchange() {
+  window._exchangeCredit=0; window._exchangeCreditNoteId=null;
+  const banner=document.getElementById('exchangeBanner'); if(banner) banner.style.display='none';
+  clearCart();
+}
+
+function applyExchangeCredit() {
+  const credit=window._exchangeCredit||0;
+  if(!credit||!cart.length){ toast('⚠ Add items to cart first'); return; }
+  const total=Math.round(getTotal()); const cur=storeConfig.currency||'KES';
+  discountAmt=Math.min(credit,total); recalc();
+  const banner=document.getElementById('exchangeBanner'); if(banner) banner.style.display='none';
+  window._exchangeCredit=0;
+  const topUp=Math.max(0,total-credit); const refund=Math.max(0,credit-total);
+  if(topUp>0) toast('Customer pays extra '+cur+' '+topUp.toLocaleString());
+  else if(refund>0) toast('Refund to customer: '+cur+' '+refund.toLocaleString());
+  else toast('✓ Exact exchange — no extra payment');
+}
+
+function openVoidModal(txnId) {
+  if(!isManager()){ toast('⚠ Manager access required to void'); return; }
+  const txn=transactions.find(t=>t.id===txnId); if(!txn) return;
+  if(new Date(txn.date).toDateString()!==new Date().toDateString()){ toast('⚠ Can only void transactions from today'); return; }
+  if(txn.status==='voided'){ toast('⚠ Already voided'); return; }
+  window._voidTxnId=txnId;
+  const ref=document.getElementById('voidTxnRef'); if(ref) ref.textContent=txnId;
+  const mgr=document.getElementById('voidManagerName'); if(mgr) mgr.value=activeCashier?activeCashier.name:'Manager';
+  const rsn=document.getElementById('voidReason'); if(rsn) rsn.value='';
+  const modal=document.getElementById('voidModal'); if(modal) modal.style.display='flex';
+}
+
+function confirmVoid() {
+  const txn=transactions.find(t=>t.id===window._voidTxnId); if(!txn) return;
+  const reason=document.getElementById('voidReason').value.trim();
+  if(!reason){ toast('⚠ Enter a reason for voiding'); return; }
+  txn.items.forEach(item=>{ const p=products.find(x=>x.id===item.id); if(p) p.stock+=item.qty; });
+  txn.status='voided'; txn.voidedBy=activeCashier?activeCashier.name:'Manager';
+  txn.voidedAt=new Date().toISOString(); txn.voidReason=reason;
+  lsSet(LS.products,products); lsSet(LS.transactions,transactions);
+  document.getElementById('voidModal').style.display='none';
+  renderReturnsTable(); renderInventoryTable();
+  toast('✓ '+window._voidTxnId+' voided — stock reversed');
+}
+
+// ── NETWORK ──
+
 function initNetwork(){
   updateNetDot();
-  window.addEventListener('online', ()=>{ netStatus='online';  updateNetDot(); });
+  window.addEventListener('online', ()=>{ netStatus='online'; updateNetDot(); });
   window.addEventListener('offline',()=>{ netStatus='offline'; updateNetDot(); });
   setInterval(probeConnection,30000);
   probeConnection();
@@ -1302,11 +1539,11 @@ function updateNetDot(){
   dot.title={online:'Online',weak:'Slow connection',offline:'Offline'}[netStatus]||netStatus;
 }
 
-// ── Backup / Restore ──
+// ── BACKUP / RESTORE ──
+
 function openBackupModal(){
-  const el=document.getElementById('backupModal');
-  if(!el){ toast('⚠ backupModal not found in HTML'); return; }
-  document.getElementById('backupStats').textContent =
+  const el=document.getElementById('backupModal'); if(!el){ toast('⚠ backupModal missing'); return; }
+  document.getElementById('backupStats').textContent=
     products.length+' products · '+transactions.length+' transactions · '+allSessions.length+' sessions';
   document.querySelectorAll('.backup-manager-only').forEach(el=>el.style.display=isManager()?'block':'none');
   el.style.display='flex';
@@ -1329,10 +1566,10 @@ function handleRestoreFile(e){
     try{
       const data=JSON.parse(evt.target.result);
       if(!data.products){ toast('⚠ Not a valid backup file'); return; }
-      if(!confirm('Restore from '+file.name+'?\n\nThis replaces ALL current data.')) return;
+      if(!confirm('Restore from '+file.name+'?\n\nReplaces ALL current data.')) return;
       ingestData(data);
-      if(data.transactions){ transactions=data.transactions; lsSet('tinah_transactions',transactions); }
-      if(data.sessions){ allSessions=data.sessions; lsSet('tinah_sessions',allSessions); }
+      if(data.transactions){ transactions=data.transactions; lsSet(LS.transactions,transactions); }
+      if(data.sessions){ allSessions=data.sessions; lsSet(LS.sessions,allSessions); }
       populateCatSelects(); renderCatChips(); renderSubcats(); filterProducts();
       document.getElementById('productCount').textContent=products.length;
       document.getElementById('backupModal').style.display='none';
@@ -1345,10 +1582,10 @@ function handleRestoreFile(e){
 function clearLocalStorage(){
   if(!isManager()){ toast('⚠ Manager access required'); return; }
   if(!confirm('Wipe all local data and reset to sample catalogue?')) return;
-  ['tinah_products','tinah_transactions','tinah_sessions','tinah_queue',
-   'tinah_config','tinah_categories','tinah_cashiers'].forEach(k=>localStorage.removeItem(k));
+  Object.values(LS).forEach(k=>localStorage.removeItem(k));
   toast('✓ Cleared — refresh the page to reload');
 }
+
 
 // ── BOOT ──
 boot();
