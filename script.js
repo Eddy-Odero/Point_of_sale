@@ -1107,7 +1107,7 @@ function processVoiceCommand(cmd) {
     clearCart(); stopVoice(); toast('🎙 Cart cleared'); return;
   }
   // "checkout" / "pay"
-  if (cmd.includes('checkout') || cmd.includes('proceed') || cmd.includes('pay now')) {
+  if (cmd.includes('check out') || cmd.includes('proceed') || cmd.includes('pay now')) {
     if (cart.length) { openPayment(); stopVoice(); }
     else toast('🎙 Cart is empty'); return;
   }
