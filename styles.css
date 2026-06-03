@@ -1331,3 +1331,87 @@
     .report-charts-row { grid-template-columns: 1fr; }
     .kpi-row { grid-template-columns: repeat(2,1fr); }
   }
+
+  /* ── LOYALTY BADGE ── */
+  .loyalty-badge {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--gold-dim); border: 1px solid var(--border-gold);
+    border-radius: var(--radius); padding: 7px 12px; margin-top: 6px;
+    font-size: 11px; letter-spacing: 0.04em;
+  }
+  .loyalty-apply-btn {
+    background: var(--gold); color: var(--black); border: none;
+    border-radius: var(--radius); font-family: 'Montserrat', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    padding: 4px 10px; cursor: pointer; margin-left: auto;
+    transition: opacity 0.2s;
+  }
+  .loyalty-apply-btn:hover { opacity: 0.85; }
+
+  /* ── TIER LEGEND ── */
+  .tier-legend {
+    display: flex; gap: 8px; padding: 10px 20px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tier-pill {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    padding: 4px 12px; border-radius: 20px; border: 1px solid;
+    background: transparent;
+  }
+
+  /* ── EXPIRY PANEL ── */
+  .expiry-panel {
+    border-bottom: 1px solid var(--border); padding: 10px 20px 12px;
+    flex-shrink: 0; max-height: 200px; overflow-y: auto;
+  }
+  .expiry-panel-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+  }
+  .expiry-none {
+    font-size: 12px; color: var(--success); letter-spacing: 0.04em; padding: 4px 0;
+  }
+  .expiry-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+  }
+  .expiry-row:last-child { border-bottom: none; }
+  .expiry-emoji  { font-size: 20px; flex-shrink: 0; }
+  .expiry-info   { flex: 1; min-width: 0; }
+  .expiry-name   { font-size: 12px; font-weight: 600; color: var(--text); }
+  .expiry-meta   { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+  .expiry-expired  .expiry-meta { color: var(--danger); font-weight: 600; }
+  .expiry-critical .expiry-meta { color: #e55; }
+  .expiry-warning  .expiry-meta { color: #d4902a; }
+  .expiry-ok       .expiry-meta { color: var(--text-faint); }
+
+  /* ── SMS PROTOTYPE ── */
+  .sms-prototype-banner {
+    background: rgba(201,168,76,0.1); border: 1px solid var(--border-gold);
+    border-radius: var(--radius); padding: 9px 14px;
+    font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em;
+    margin-bottom: 16px; line-height: 1.6;
+  }
+  .sms-prototype-banner span { font-weight: 700; color: var(--gold); }
+  .sms-preview-bubble {
+    background: #e8f4e8; border-radius: 12px 12px 12px 0;
+    padding: 12px 16px; max-width: 80%; margin-bottom: 4px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .sms-outbox-panel {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px 12px; max-height: 180px; overflow-y: auto; flex-shrink: 0;
+  }
+  .sms-outbox-row {
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .sms-outbox-row:last-child { border-bottom: none; }
+  .sms-outbox-meta {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 3px; flex-wrap: wrap;
+  }
+  .sms-outbox-recipient { font-weight: 600; color: var(--text); }
+  .sms-outbox-phone     { color: var(--text-faint); }
+  .sms-outbox-date      { color: var(--text-faint); margin-left: auto; }
+  .sms-outbox-msg       { color: var(--text-dim); font-size: 11px; line-height: 1.5; padding-left: 2px; }

@@ -29,6 +29,7 @@
     <button class="tab-btn" onclick="switchView('inventory')">Inventory</button>
     <button class="tab-btn" onclick="switchView('returns')">Returns</button>
     <button class="tab-btn" onclick="switchView('reports')">Reports</button>
+    <button class="tab-btn" onclick="switchView('customers')">Customers</button>
   </div>
   <div class="topbar-right">
     <div id="clock"></div>
@@ -123,6 +124,127 @@
   </div>
 </div>
 
+<!-- CUSTOMERS VIEW -->
+<div id="customersView" style="display:none;flex-direction:column;overflow:hidden;flex:1">
+  <div class="inv-header">
+    <div class="inv-title">Customers &amp; Loyalty</div>
+    <div class="inv-controls">
+      <div class="search-wrap" style="width:220px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" id="custSearchInput" placeholder="Search customers…" oninput="renderCustomersTable()" style="padding-left:32px">
+      </div>
+      <button class="btn-outline" onclick="openSmsBlast()" style="white-space:nowrap">📱 SMS Blast</button>
+      <button class="btn-gold" onclick="openEditCustomer(null)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add Customer
+      </button>
+    </div>
+  </div>
+
+  <!-- Tier legend -->
+  <div class="tier-legend">
+    <div class="tier-pill" style="border-color:#cd7f32;color:#cd7f32">🥉 Bronze — 2+ visits</div>
+    <div class="tier-pill" style="border-color:#a0a0a0;color:#a0a0a0">🥈 Silver — 5+ visits · 5% off</div>
+    <div class="tier-pill" style="border-color:#d4af37;color:#d4af37">🥇 Gold — 10+ visits · 10% off</div>
+    <div class="tier-pill" style="border-color:#c9a84c;color:#c9a84c">👑 VIP — 20+ visits · 15% off</div>
+  </div>
+
+  <!-- SMS outbox panel -->
+  <div class="sms-outbox-panel">
+    <div class="expiry-panel-title">📨 Message History</div>
+    <div id="smsOutboxList"></div>
+  </div>
+
+  <!-- Customer table -->
+  <div class="inv-table-wrap" style="flex:1;overflow:auto">
+    <div id="custEmpty" style="text-align:center;padding:60px;color:var(--text-faint);font-size:13px;letter-spacing:0.1em;display:none">No customers yet. They are added automatically when a name is entered at checkout.</div>
+    <table id="custTable" style="display:none">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Tier</th>
+          <th>Visits</th>
+          <th>Total Spend</th>
+          <th>Last Visit</th>
+          <th>SMS</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="custTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CUSTOMER EDIT MODAL -->
+<div class="overlay" id="custModal" style="display:none">
+  <div class="modal" style="width:440px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="custModalTitle">New Customer</div>
+      <button class="modal-close" onclick="document.getElementById('custModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Name <span style="color:var(--danger)">*</span></label>
+        <input class="form-input" id="cf_name" placeholder="e.g. Jane Wanjiku">
+      </div>
+      <div class="form-row-split">
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="cf_phone" placeholder="07XX XXX XXX">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="cf_email" placeholder="optional">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:14px">
+        <label class="form-label">VIP Custom Discount % <span style="color:var(--text-faint);font-weight:400">(overrides tier)</span></label>
+        <input class="form-input" id="cf_vip_pct" type="number" placeholder="e.g. 20">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Notes</label>
+        <input class="form-input" id="cf_notes" placeholder="e.g. Prefers fragrance-free products">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('custModal').style.display='none'">Cancel</button>
+      <button class="btn-gold" onclick="saveCustomer()" style="padding:10px 24px">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISPOSE MODAL -->
+<div class="overlay" id="disposeModal" style="display:none">
+  <div class="modal" style="width:400px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Dispose / Write Off</div>
+      <button class="modal-close" onclick="document.getElementById('disposeModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:14px;font-family:'Cormorant Garamond',serif;color:var(--gold-light);margin-bottom:14px" id="disposeProductName"></div>
+      <div class="form-row">
+        <label class="form-label">Quantity to Dispose</label>
+        <input class="form-input" id="disposeQtyInput" type="number" min="1" style="font-size:16px;padding:12px">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Reason <span style="color:var(--danger)">*</span></label>
+        <div class="return-type-btns" style="margin-bottom:8px">
+          <button class="return-type-btn active" onclick="this.closest('.return-type-btns').querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('disposeReason').value=this.textContent.trim()">Expired</button>
+          <button class="return-type-btn" onclick="this.closest('.return-type-btns').querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('disposeReason').value=this.textContent.trim()">Damaged</button>
+          <button class="return-type-btn" onclick="this.closest('.return-type-btns').querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('disposeReason').value=this.textContent.trim()">Contaminated</button>
+          <button class="return-type-btn" onclick="this.closest('.return-type-btns').querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('disposeReason').value=this.textContent.trim()">Other</button>
+        </div>
+        <input class="form-input" id="disposeReason" placeholder="Disposal reason…">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('disposeModal').style.display='none'">Cancel</button>
+      <button style="background:rgba(200,60,60,0.12);border:1px solid var(--danger);border-radius:var(--radius);color:var(--danger);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.08em;padding:10px 24px;cursor:pointer" onclick="confirmDispose()">Write Off Stock</button>
+    </div>
+  </div>
+</div>
+
 <!-- M-PESA PENDING TRAY -->
 <div id="mpesaTray" style="display:none" class="mpesa-tray">
   <div class="mpesa-tray-header">
@@ -175,7 +297,8 @@
       <span class="cart-count" id="cartCount">0</span>
     </div>
     <div class="cart-customer">
-      <input class="customer-input" placeholder="Customer name (optional)…" id="customerName">
+      <input class="customer-input" placeholder="Customer name or phone…" id="customerName" oninput="lookupCustomer()">
+      <div class="loyalty-badge" id="loyaltyBadge" style="display:none"></div>
     </div>
     <div class="cart-items" id="cartItems">
       <div class="cart-empty">
@@ -224,6 +347,10 @@
         Add Item
       </button>
     </div>
+  </div>
+  <div class="expiry-panel" id="inventoryExpiryPanel">
+    <div class="expiry-panel-title">⏰ Expiry Alerts <span style="font-weight:400;color:var(--text-faint)">— items expiring within 30 days</span></div>
+    <div id="expiryAlerts"></div>
   </div>
   <div class="inv-table-wrap">
     <table>
@@ -435,6 +562,10 @@
       <div class="form-row" style="margin-top:14px">
         <label class="form-label">Emoji Fallback</label>
         <input class="form-input" id="f_emoji" placeholder="e.g. 👗  (shown if no image)">
+      </div>
+      <div class="form-row" style="margin-top:14px">
+        <label class="form-label">Expiry Date <span style="color:var(--text-faint);font-weight:400">(cosmetics / perishables)</span></label>
+        <input class="form-input" id="f_expiry" type="date">
       </div>
     </div>
     <div class="modal-footer">
@@ -766,6 +897,47 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="document.getElementById('exchangeSettleModal').style.display='none'">Cancel</button>
       <button class="btn-gold" id="exSettleConfirmBtn" onclick="confirmExchangeSettlement()" style="padding:10px 24px">Complete Exchange</button>
+    </div>
+  </div>
+</div>
+
+<!-- SMS COMPOSER MODAL -->
+<div class="overlay" id="smsModal" style="display:none">
+  <div class="modal" style="width:500px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">📱 Send SMS</div>
+      <button class="modal-close" onclick="document.getElementById('smsModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="sms-prototype-banner">
+        <span>⚡ Prototype mode</span> — Messages are stored locally. Connect a backend (Africa's Talking / Twilio) to deliver real SMS.
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label class="form-label" style="margin-bottom:0">Message</label>
+        <span style="font-size:10px;color:var(--text-faint)"><span id="smsCharCount">0</span>/160 chars</span>
+      </div>
+      <textarea class="form-input" id="smsMsgInput" rows="4"
+        style="resize:vertical;font-family:'Montserrat',sans-serif;font-size:12px;line-height:1.6"
+        placeholder="Hi [Name]! Type your message here…"></textarea>
+      <div style="font-size:10px;color:var(--text-faint);margin-top:4px;margin-bottom:14px">
+        Use <strong>[Name]</strong> to personalise — replaced with each customer's first name.
+      </div>
+
+      <div class="form-label">Preview (first recipient)</div>
+      <div class="sms-preview-bubble">
+        <div id="smsPreviewArea" style="font-size:12px;line-height:1.6;color:#1a1a1a"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)">
+        <span style="font-size:12px;color:var(--text-dim)">Recipients (opted-in with phone)</span>
+        <span style="font-size:16px;font-family:'Cormorant Garamond',serif;color:var(--gold)" id="smsRecipientCount">0</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('smsModal').style.display='none'">Cancel</button>
+      <button class="btn-gold" onclick="sendSmsBlast()" style="padding:10px 28px">Send to All →</button>
     </div>
   </div>
 </div>

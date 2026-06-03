@@ -20,8 +20,10 @@ let allSessions = [];
 const LS = {
   products:'tinah_products', transactions:'tinah_transactions',
   sessions:'tinah_sessions',  queue:'tinah_queue',
-  config:'tinah_config',      categories:'tinah_categories', cashiers:'tinah_cashiers'
+  config:'tinah_config',      categories:'tinah_categories', cashiers:'tinah_cashiers',
+  customers:'tinah_customers'
 };
+let customers = [];
 let offlineQueue = [];
 let netStatus = 'online';
 let transactions  = [];
@@ -43,6 +45,7 @@ function persistAll(){
   lsSet('tinah_config',storeConfig); lsSet('tinah_categories',categories);
   lsSet('tinah_products',products);  lsSet('tinah_cashiers',cashiers);
   lsSet('tinah_transactions',transactions); lsSet('tinah_sessions',allSessions);
+  lsSet(LS.customers, customers);
 }
 
 // ── Network status — drives the existing cashier-dot colour ──
@@ -203,12 +206,14 @@ function switchView(v) {
   document.getElementById('inventoryView').style.display  = v === 'inventory' ? 'flex' : 'none';
   document.getElementById('returnsView').style.display    = v === 'returns'   ? 'flex' : 'none';
   document.getElementById('reportsView').style.display    = v === 'reports'   ? 'flex' : 'none';
+  document.getElementById('customersView').style.display  = v === 'customers' ? 'flex' : 'none';
   document.querySelectorAll('.tab-btn').forEach((b,i) =>
     b.classList.toggle('active',
-      (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')||(i===3&&v==='reports')));
-  if (v === 'inventory') renderInventoryTable();
+      (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')||(i===3&&v==='reports')||(i===4&&v==='customers')));
+  if (v === 'inventory') { renderInventoryTable(); renderExpiryAlerts(); }
   if (v === 'returns')   renderReturnsTable();
   if (v === 'reports')   renderReports();
+  if (v === 'customers') { renderCustomersTable(); initSms(); renderSmsOutbox(); }
 }
 
 //  CATEGORY UI
@@ -464,7 +469,7 @@ function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').textContent = 'New Item';
   document.getElementById('saveItemBtn').textContent = 'Save Item';
-  ['f_name','f_price','f_stock','f_emoji','f_sku'].forEach(id =>
+  ['f_name','f_price','f_stock','f_emoji','f_sku','f_expiry'].forEach(id =>
     document.getElementById(id).value = '');
   document.getElementById('f_cat').value = '';
   document.getElementById('f_sub').innerHTML = '<option value="">— Select —</option>';
@@ -484,6 +489,7 @@ function openEditModal(id) {
   document.getElementById('f_emoji').value = p.emoji || '';
   document.getElementById('f_sku').value = p.sku || '';
   document.getElementById('f_cat').value = p.category;
+  document.getElementById('f_expiry').value = p.expiryDate || '';
   updateSubcats();
   setTimeout(() => document.getElementById('f_sub').value = p.subcategory, 10);
 
@@ -509,8 +515,9 @@ function saveItem() {
   const sub = document.getElementById('f_sub').value;
   const price = parseFloat(document.getElementById('f_price').value);
   const stock = parseInt(document.getElementById('f_stock').value);
-  const emoji = document.getElementById('f_emoji').value.trim() || '🏷';
-  const sku = document.getElementById('f_sku').value.trim();
+  const emoji    = document.getElementById('f_emoji').value.trim() || '🏷';
+  const sku      = document.getElementById('f_sku').value.trim();
+  const expiryDate = document.getElementById('f_expiry').value || null;
 
   if (!name || !cat || !sub || isNaN(price) || isNaN(stock)) {
     toast('⚠ Please fill all required fields'); return;
@@ -524,14 +531,15 @@ function saveItem() {
   if (editingId) {
     const p = products.find(x => x.id === editingId);
     Object.assign(p, { name, category: cat, subcategory: sub, price, stock, emoji, sku,
-      image_url, image_data });
-    // Update cart item if present
+      image_url, image_data, expiryDate });
     const ci = cart.find(x => x.id === editingId);
     if (ci) Object.assign(ci, { name, price, emoji, image_url, image_data });
     toast(`✓ ${name} updated`);
   } else {
     products.push({ id: nextId++, name, category: cat, subcategory: sub,
-      price, stock, emoji, sku, image_url, image_data });
+      price, stock, emoji, sku, image_url, image_data, expiryDate });
+    const newProd = products[products.length-1];
+    if (newProd.stock > 0) triggerNewStockAlert(newProd);
     toast(`✓ ${name} added`);
   }
 
@@ -574,7 +582,7 @@ function renderInventoryTable() {
     const cat = categories.find(c => c.id === p.category);
     return `<tr>
       <td>${thumb}</td>
-      <td class="td-name">${p.name}</td>
+      <td class="td-name">${p.name}${getExpiryBadgeHTML(p)}</td>
       <td style="font-size:10px;letter-spacing:0.06em;color:var(--text-faint)">${p.sku||'—'}</td>
       <td><span class="badge badge-cat">${cat?.label||p.category}</span></td>
       <td><span class="badge badge-sub">${p.subcategory}</span></td>
@@ -582,6 +590,7 @@ function renderInventoryTable() {
       <td style="color:${p.stock<=3?'var(--danger)':'var(--text-dim)'};font-weight:${p.stock<=3?600:400}">${p.stock}</td>
       <td><div class="td-actions">
         <div class="icon-btn" onclick="openEditModal(${p.id})" title="Edit">✏</div>
+        ${p.expiryDate?`<div class="icon-btn" onclick="openDisposeModal(${p.id})" title="Dispose">🗑</div>`:''}
         <div class="icon-btn del" onclick="deleteProduct(${p.id})" title="Delete">✕</div>
       </div></td>
     </tr>`;
@@ -1412,6 +1421,7 @@ function finalisePayment() {
     lsSet(LS.sessions,allSessions);
   }
   lsSet(LS.products,products); lsSet(LS.transactions,transactions);
+  recordLoyalty(txn);
   splitMode=false; splitAmount1=0;
   closePayment(); showSuccess();
 }
@@ -2137,4 +2147,385 @@ function exportReportPDF() {
   <table><tr><th>Product</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr>${itemRows}</table>
   <script>window.onload=()=>window.print()<\/script></body></html>`);
   win.document.close();
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  CUSTOMER LOYALTY
+// ═══════════════════════════════════════════════════════
+
+const TIERS = [
+  { name:'VIP',    minVisits:20, minSpend:50000, pct:15, color:'#c9a84c', icon:'👑' },
+  { name:'Gold',   minVisits:10, minSpend:20000, pct:10, color:'#d4af37', icon:'🥇' },
+  { name:'Silver', minVisits:5,  minSpend:5000,  pct:5,  color:'#a0a0a0', icon:'🥈' },
+  { name:'Bronze', minVisits:2,  minSpend:0,     pct:0,  color:'#cd7f32', icon:'🥉' },
+];
+
+function getTier(c) {
+  for (const t of TIERS) {
+    if (c.visits >= t.minVisits || c.totalSpend >= t.minSpend) return t;
+  }
+  return null;
+}
+
+function findOrCreateCustomer(nameOrPhone) {
+  if (!nameOrPhone || nameOrPhone === 'Walk-in Customer') return null;
+  let c = customers.find(x =>
+    x.name.toLowerCase() === nameOrPhone.toLowerCase() || x.phone === nameOrPhone);
+  if (!c) {
+    c = { id: 'CUS-'+Date.now().toString(36).toUpperCase(),
+      name: nameOrPhone, phone: '', email: '',
+      visits:0, totalSpend:0, notes:'',
+      createdAt: new Date().toISOString() };
+    customers.push(c);
+  }
+  return c;
+}
+
+function recordLoyalty(txn) {
+  if (!txn || txn.status === 'failed' || txn.status === 'voided') return;
+  const nameOrPhone = document.getElementById('customerName').value.trim();
+  const c = findOrCreateCustomer(nameOrPhone);
+  if (!c) return;
+  c.visits++;
+  c.totalSpend += txn.total;
+  c.lastVisit = txn.date;
+  txn.customerId = c.id;
+  lsSet(LS.customers, customers);
+}
+
+// Called when cashier types in customer name field — show tier + auto-discount
+function lookupCustomer() {
+  const val = document.getElementById('customerName').value.trim();
+  const badge = document.getElementById('loyaltyBadge');
+  if (!val || val.length < 2) { if (badge) badge.style.display='none'; return; }
+  const c = customers.find(x =>
+    x.name.toLowerCase().startsWith(val.toLowerCase()) || x.phone.startsWith(val));
+  if (!c) { if (badge) badge.style.display='none'; return; }
+  const tier = getTier(c);
+  if (!tier || tier.pct === 0) { if (badge) badge.style.display='none'; return; }
+  const cur = storeConfig.currency||'KES';
+  if (badge) {
+    badge.style.display = 'flex';
+    badge.innerHTML = `
+      <span style="color:${tier.color}">${tier.icon} ${tier.name}</span>
+      <span style="color:var(--text-faint)">${c.visits} visits · ${cur} ${c.totalSpend.toLocaleString()} spend</span>
+      <button class="loyalty-apply-btn" onclick="applyLoyaltyDiscount(${tier.pct})">Apply ${tier.pct}% discount</button>`;
+  }
+  // Auto-fill name with full name
+  document.getElementById('customerName').value = c.name;
+}
+
+function applyLoyaltyDiscount(pct) {
+  document.getElementById('discountInput').value = pct+'%';
+  recalc();
+  toast(`${pct}% loyalty discount applied`);
+}
+
+// ── Customer management (Customers tab) ──
+function renderCustomersTable() {
+  const q = (document.getElementById('custSearchInput')?.value||'').toLowerCase();
+  const cur = storeConfig.currency||'KES';
+  const list = q ? customers.filter(c =>
+    c.name.toLowerCase().includes(q) || (c.phone||'').includes(q))
+    : [...customers].sort((a,b)=>b.totalSpend-a.totalSpend);
+
+  const empty = document.getElementById('custEmpty');
+  const table = document.getElementById('custTable');
+  if (!customers.length) { empty.style.display='block'; table.style.display='none'; return; }
+  empty.style.display='none'; table.style.display='table';
+
+  document.getElementById('custTableBody').innerHTML = list.map(c => {
+    const tier = getTier(c);
+    const tierBadge = tier ? `<span class="badge" style="background:${tier.color}22;color:${tier.color};border:1px solid ${tier.color}">${tier.icon} ${tier.name}</span>` : '<span class="badge badge-complete" style="color:var(--text-faint)">New</span>';
+    const lastV = c.lastVisit ? new Date(c.lastVisit).toLocaleDateString('en-KE',{day:'numeric',month:'short'}) : '—';
+    return `<tr>
+      <td style="font-size:12px;font-weight:600">${c.name}</td>
+      <td style="font-size:11px;color:var(--text-faint)">${c.phone||'—'}</td>
+      <td>${tierBadge}</td>
+      <td style="font-size:12px;text-align:center">${c.visits}</td>
+      <td class="td-price">${cur} ${c.totalSpend.toLocaleString()}</td>
+      <td style="font-size:11px;color:var(--text-faint)">${lastV}</td>
+      <td style="text-align:center">
+        <button onclick="toggleSmsOptIn('${c.id}')" style="background:none;border:1px solid ${c.smsOptIn&&c.phone?'var(--success)':'var(--border)'};border-radius:var(--radius);padding:3px 8px;cursor:pointer;font-size:11px;color:${c.smsOptIn&&c.phone?'var(--success)':'var(--text-faint)'}" title="${c.phone?'Toggle SMS opt-in':'Add phone number first'}">
+          ${c.smsOptIn&&c.phone?'✓ On':'Off'}
+        </button>
+      </td>
+      <td><div class="td-actions">
+        <div class="icon-btn" onclick="openEditCustomer('${c.id}')" title="Edit">✏️</div>
+        <div class="icon-btn" onclick="deleteCustomer('${c.id}')" title="Delete">🗑</div>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openEditCustomer(id) {
+  const c = id ? customers.find(x=>x.id===id) : null;
+  document.getElementById('custModalTitle').textContent = c ? 'Edit Customer' : 'New Customer';
+  document.getElementById('cf_name').value  = c?.name  || '';
+  document.getElementById('cf_phone').value = c?.phone || '';
+  document.getElementById('cf_email').value = c?.email || '';
+  document.getElementById('cf_notes').value = c?.notes || '';
+  document.getElementById('cf_vip_pct').value = c?.vipPct || '';
+  document.getElementById('custModal').dataset.editId = id||'';
+  document.getElementById('custModal').style.display = 'flex';
+}
+
+function saveCustomer() {
+  const id     = document.getElementById('custModal').dataset.editId;
+  const name   = document.getElementById('cf_name').value.trim();
+  const phone  = document.getElementById('cf_phone').value.trim();
+  const email  = document.getElementById('cf_email').value.trim();
+  const notes  = document.getElementById('cf_notes').value.trim();
+  const vipPct = parseFloat(document.getElementById('cf_vip_pct').value)||0;
+  if (!name) { toast('⚠ Name is required'); return; }
+  if (id) {
+    const c = customers.find(x=>x.id===id);
+    Object.assign(c, { name, phone, email, notes, vipPct });
+  } else {
+    customers.push({ id:'CUS-'+Date.now().toString(36).toUpperCase(),
+      name, phone, email, notes, vipPct,
+      visits:0, totalSpend:0, createdAt:new Date().toISOString() });
+  }
+  lsSet(LS.customers, customers);
+  document.getElementById('custModal').style.display='none';
+  renderCustomersTable();
+  toast('✓ Customer saved');
+}
+
+function deleteCustomer(id) {
+  if (!confirm('Remove this customer profile?')) return;
+  customers = customers.filter(c=>c.id!==id);
+  lsSet(LS.customers, customers);
+  renderCustomersTable();
+  toast('✓ Customer removed');
+}
+
+// ═══════════════════════════════════════════════════════
+//  EXPIRY & DISPOSAL
+// ═══════════════════════════════════════════════════════
+
+function getExpiryStatus(p) {
+  if (!p.expiryDate) return null;
+  const exp  = new Date(p.expiryDate);
+  const now  = new Date();
+  const days = Math.ceil((exp - now) / 86400000);
+  if (days < 0)  return { label:'Expired',       days, cls:'expiry-expired' };
+  if (days <= 7) return { label:'Expires in '+days+'d', days, cls:'expiry-critical' };
+  if (days <= 30) return { label:'Expires in '+days+'d', days, cls:'expiry-warning' };
+  return { label:'Expires '+exp.toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'}), days, cls:'expiry-ok' };
+}
+
+function renderExpiryAlerts() {
+  const wrap = document.getElementById('expiryAlerts');
+  if (!wrap) return;
+  const flagged = products.filter(p => {
+    const s = getExpiryStatus(p);
+    return s && s.days <= 30;
+  }).sort((a,b) => new Date(a.expiryDate)-new Date(b.expiryDate));
+  if (!flagged.length) { wrap.innerHTML='<div class="expiry-none">✓ No items expiring in the next 30 days</div>'; return; }
+  wrap.innerHTML = flagged.map(p => {
+    const st = getExpiryStatus(p);
+    return `<div class="expiry-row ${st.cls}">
+      <span class="expiry-emoji">${p.emoji||'📦'}</span>
+      <div class="expiry-info">
+        <div class="expiry-name">${p.name} <span style="color:var(--text-faint);font-size:10px">${p.sku||''}</span></div>
+        <div class="expiry-meta">Stock: ${p.stock} · ${st.label}</div>
+      </div>
+      <button class="btn-outline" style="font-size:10px;padding:4px 10px" onclick="openDisposeModal(${p.id})">Dispose</button>
+    </div>`;
+  }).join('');
+}
+
+function openDisposeModal(productId) {
+  const p = products.find(x=>x.id===productId);
+  if (!p) return;
+  document.getElementById('disposeProductName').textContent = p.name;
+  document.getElementById('disposeQtyInput').value = p.stock;
+  document.getElementById('disposeQtyInput').max   = p.stock;
+  document.getElementById('disposeReason').value   = '';
+  document.getElementById('disposeModal').dataset.pid = productId;
+  document.getElementById('disposeModal').style.display='flex';
+}
+
+function confirmDispose() {
+  const pid = parseInt(document.getElementById('disposeModal').dataset.pid);
+  const p   = products.find(x=>x.id===pid); if (!p) return;
+  const qty = parseInt(document.getElementById('disposeQtyInput').value)||0;
+  const reason = document.getElementById('disposeReason').value.trim();
+  if (qty <= 0 || qty > p.stock) { toast('⚠ Invalid quantity'); return; }
+  if (!reason) { toast('⚠ Enter a disposal reason'); return; }
+
+  // Log disposal as a transaction-like record
+  const log = {
+    id: 'DIS-'+Date.now().toString(36).toUpperCase(),
+    date: new Date().toISOString(),
+    type: 'disposal',
+    productId: pid, productName: p.name, sku: p.sku||'',
+    qty, reason,
+    writtenOffValue: p.price * qty,
+    cashier: activeCashier ? activeCashier.name : 'Manager'
+  };
+  if (!storeConfig.disposalLog) storeConfig.disposalLog = [];
+  storeConfig.disposalLog.push(log);
+
+  p.stock -= qty;
+  if (p.stock === 0) p.status = 'disposed';
+  lsSet(LS.products, products);
+  lsSet(LS.config, storeConfig);
+
+  document.getElementById('disposeModal').style.display='none';
+  renderExpiryAlerts(); renderInventoryTable();
+  const cur = storeConfig.currency||'KES';
+  toast(`✓ Disposed ${qty}× ${p.name} — ${cur} ${log.writtenOffValue.toLocaleString()} written off`);
+}
+
+// Add expiry badge to inventory table rows
+function getExpiryBadgeHTML(p) {
+  const s = getExpiryStatus(p);
+  if (!s) return '';
+  const colours = { 'expiry-expired':'var(--danger)', 'expiry-critical':'#e55', 'expiry-warning':'#d4902a', 'expiry-ok':'var(--success)' };
+  return `<span style="font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid ${colours[s.cls]};color:${colours[s.cls]};margin-left:4px">${s.label}</span>`;
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  SMS ALERTS — PROTOTYPE
+//  Stores outbox in localStorage. Real sending via
+//  Africa's Talking or Twilio replaces sendSmsNow().
+// ═══════════════════════════════════════════════════════
+
+let smsOutbox = [];
+const LS_SMS = 'tinah_sms_outbox';
+
+function initSms() {
+  smsOutbox = lsGet(LS_SMS) || [];
+}
+
+// ── Called from inventory when new stock is added ──
+function triggerNewStockAlert(product) {
+  const subscribers = customers.filter(c => c.smsOptIn && c.phone);
+  if (!subscribers.length) return;
+  const storeName = storeConfig.name || 'TINAH COSMETICS';
+  const cur = storeConfig.currency || 'KES';
+  const msg = `Hi [Name]! ${storeName}: ${product.name} is back in stock at ${cur} ${product.price.toLocaleString()}. Visit us today! Reply STOP to unsubscribe.`;
+  openSmsComposer('new_stock', msg, subscribers, product);
+}
+
+// ── Manual blast from Customers tab ──
+function openSmsBlast() {
+  const subscribers = customers.filter(c => c.smsOptIn && c.phone);
+  const storeName = storeConfig.name || 'TINAH COSMETICS';
+  openSmsComposer('manual', `Hi [Name]! ${storeName}: `, subscribers, null);
+}
+
+function openSmsComposer(type, defaultMsg, recipients, context) {
+  document.getElementById('smsModal').style.display = 'flex';
+  document.getElementById('smsMsgInput').value = defaultMsg;
+  document.getElementById('smsRecipientCount').textContent = recipients.length;
+  document.getElementById('smsCharCount').textContent = defaultMsg.length;
+  document.getElementById('smsMsgInput').oninput = () => {
+    document.getElementById('smsCharCount').textContent =
+      document.getElementById('smsMsgInput').value.length;
+    updateSmsPreview(recipients);
+  };
+  window._smsPending = { type, recipients, context };
+  updateSmsPreview(recipients);
+}
+
+function updateSmsPreview(recipients) {
+  const msg = document.getElementById('smsMsgInput').value;
+  const preview = document.getElementById('smsPreviewArea');
+  const first = recipients[0];
+  if (!first) { preview.textContent = '— No opted-in recipients —'; return; }
+  preview.textContent = msg.replace('[Name]', first.name.split(' ')[0]);
+}
+
+function sendSmsBlast() {
+  const msg      = document.getElementById('smsMsgInput').value.trim();
+  const pending  = window._smsPending;
+  if (!msg)                     { toast('⚠ Message cannot be empty'); return; }
+  if (!pending?.recipients?.length) { toast('⚠ No opted-in recipients'); return; }
+
+  const results = pending.recipients.map(c => {
+    const personalised = msg.replace('[Name]', c.name.split(' ')[0]);
+    const entry = {
+      id:        'SMS-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,5),
+      sentAt:    new Date().toISOString(),
+      to:        c.phone,
+      recipient: c.name,
+      message:   personalised,
+      type:      pending.type,
+      status:    'queued',    // 'queued' | 'sent' | 'failed'
+      apiRef:    null,
+    };
+    // ── Prototype: swap this block for real API call ──
+    // sendViAfricas Talking(entry) or sendViaTwilio(entry)
+    entry.status = simulateSend(entry);
+    smsOutbox.unshift(entry);
+    return entry;
+  });
+
+  lsSet(LS_SMS, smsOutbox.slice(0, 500)); // keep last 500
+  document.getElementById('smsModal').style.display = 'none';
+  renderSmsOutbox();
+
+  const sent   = results.filter(r=>r.status==='sent').length;
+  const failed = results.filter(r=>r.status==='failed').length;
+  toast(`📱 ${sent} message${sent!==1?'s':''} queued${failed?' · '+failed+' failed':''}`);
+}
+
+// Prototype simulation — replace with real API call
+function simulateSend(entry) {
+  // In production: POST to your Node.js/Firebase endpoint which calls AT or Twilio
+  // For now: mark as 'sent' (no actual SMS delivered)
+  return 'sent';
+}
+
+// ── Real API stub — uncomment + fill in when backend is ready ──
+/*
+async function sendViaAfricasTalking(entry) {
+  const res = await fetch('https://YOUR-BACKEND/api/sms', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ to: entry.to, message: entry.message })
+  });
+  const data = await res.json();
+  entry.apiRef = data.messageId;
+  entry.status = data.success ? 'sent' : 'failed';
+}
+*/
+
+function renderSmsOutbox() {
+  const wrap = document.getElementById('smsOutboxList');
+  if (!wrap) return;
+  const list = smsOutbox.slice(0, 50);
+  if (!list.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px;letter-spacing:0.06em">No messages sent yet</div>';
+    return;
+  }
+  wrap.innerHTML = list.map(m => {
+    const d = new Date(m.sentAt).toLocaleString('en-KE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const statusColour = m.status==='sent'?'var(--success)':m.status==='failed'?'var(--danger)':'#d4902a';
+    return `<div class="sms-outbox-row">
+      <div class="sms-outbox-meta">
+        <span class="sms-outbox-recipient">${m.recipient}</span>
+        <span class="sms-outbox-phone">${m.to}</span>
+        <span class="sms-outbox-date">${d}</span>
+        <span style="font-size:10px;font-weight:700;color:${statusColour};letter-spacing:0.08em">${m.status.toUpperCase()}</span>
+      </div>
+      <div class="sms-outbox-msg">${m.message}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Opt-in toggle from customer table ──
+function toggleSmsOptIn(custId) {
+  const c = customers.find(x=>x.id===custId);
+  if (!c) return;
+  if (!c.phone) { toast('⚠ Add a phone number first'); return; }
+  c.smsOptIn = !c.smsOptIn;
+  lsSet(LS.customers, customers);
+  renderCustomersTable();
+  toast(c.smsOptIn ? `✓ ${c.name} opted in to SMS` : `${c.name} opted out`);
 }
