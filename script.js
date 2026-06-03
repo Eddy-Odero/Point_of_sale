@@ -768,8 +768,32 @@ function buildReceiptHTML(txn, isCreditNote = false) {
   const timeStr = date.toLocaleTimeString('en-KE', { hour:'2-digit', minute:'2-digit' });
   const vatPct = Math.round((storeConfig.vat_rate || 0.16) * 100);
 
-  const creditBanner = isCreditNote
-    ? `<div class="receipt-credit-note">★ CREDIT NOTE / RETURN ★</div>` : '';
+  // Build the correct stamp based on what actually happened
+  const lastReturn   = txn.returns && txn.returns.length ? txn.returns[txn.returns.length-1] : null;
+  const stampStyles = {
+    base:     'border-radius:4px;padding:10px 14px;margin-bottom:12px;text-align:center;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase',
+    yellow:   'background:#fff8e1;border:2px solid #f9a825;color:#7c5a00',
+    green:    'background:#e8f5e9;border:2px solid #388e3c;color:#1b5e20',
+    red:      'background:#fce8e8;border:2px solid #c62828;color:#b71c1c',
+    blue:     'background:#e3f2fd;border:2px solid #1565c0;color:#0d47a1',
+    grey:     'background:#f5f5f5;border:2px solid #757575;color:#424242',
+  };
+  const getStamp = () => {
+    if (isCreditNote && lastReturn && lastReturn.type === 'exchange')
+      return `<div style="${stampStyles.base};${stampStyles.blue}">🔄 EXCHANGE CREDIT NOTE · ${lastReturn.creditNoteId||txn.id}</div>`;
+    if (isCreditNote)
+      return `<div style="${stampStyles.base};${stampStyles.yellow}">↩ REFUND / CREDIT NOTE · ${txn.id}</div>`;
+    if (txn.status === 'voided')
+      return `<div style="${stampStyles.base};${stampStyles.red}">🚫 VOIDED — ${txn.voidReason||''}</div>`;
+    if (txn.status === 'exchanged' || (lastReturn && lastReturn.type === 'exchange'))
+      return `<div style="${stampStyles.base};${stampStyles.blue}">🔄 EXCHANGED</div>`;
+    if (txn.status === 'returned' || lastReturn)
+      return `<div style="${stampStyles.base};${stampStyles.yellow}">↩ RETURNED / REFUNDED</div>`;
+    if (txn.status === 'pending')
+      return `<div style="${stampStyles.base};${stampStyles.grey}">⏳ PAYMENT PENDING</div>`;
+    return '';
+  };
+  const creditBanner = getStamp();
 
   const itemRows = txn.items.map(i => `
     <div class="receipt-item-row">
@@ -984,6 +1008,7 @@ function openReturnModal(txnId) {
   ).join('');
 
   document.getElementById('returnNotes').value = '';
+  selectOutcome('refund');
   document.getElementById('returnModal').style.display = 'flex';
 }
 
@@ -998,52 +1023,80 @@ function selectReturnType(type) {
     b.classList.toggle('active', b.dataset.type === type));
 }
 
+function selectOutcome(outcome) {
+  const isExchange = outcome === 'exchange';
+  // Update hidden toggle value (confirmReturn reads this)
+  const toggle = document.getElementById('exchangeToggle');
+  if (toggle) toggle.value = isExchange ? 'true' : 'false';
+  // Highlight the chosen button
+  document.getElementById('outcomeRefund').classList.toggle('active', !isExchange);
+  document.getElementById('outcomeExchange').classList.toggle('active', isExchange);
+  // Show/hide relevant rows
+  document.getElementById('returnReasonRow').style.display = isExchange ? 'none' : 'block';
+  document.getElementById('exchangeHint').style.display    = isExchange ? 'block' : 'none';
+  // Update confirm button label
+  const btn = document.getElementById('confirmReturnBtn');
+  if (btn) btn.textContent = isExchange ? 'Start Exchange →' : 'Confirm Refund';
+}
+
 function confirmReturn() {
   if (!currentReturnTxn) return;
+
+  // Collect which items are being returned
   const checkedItems = currentReturnTxn.items.filter((_, idx) => {
     const el = document.getElementById(`ri_${idx}`);
     return el && el.checked;
   });
   if (!checkedItems.length) { toast('⚠ Select at least one item to return'); return; }
 
-  const notes = document.getElementById('returnNotes').value.trim();
+  const notes        = document.getElementById('returnNotes').value.trim();
+  const isExchange   = document.getElementById('exchangeToggle')?.value === 'true';
+  const returnedValue = checkedItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  // Build the return record
   const returnRecord = {
     date: new Date().toISOString(),
-    type: currentReturnType,
+    type: isExchange ? 'exchange' : currentReturnType,
     items: checkedItems,
     notes,
-    creditNoteId: 'CN-' + Date.now().toString(36).toUpperCase()
+    creditNoteId: 'CN-' + Date.now().toString(36).toUpperCase(),
+    creditValue: returnedValue
   };
 
-  // Restock items if return or damaged
-  if (currentReturnType === 'return' || currentReturnType === 'damaged') {
-    checkedItems.forEach(ri => {
-      const p = products.find(x => x.id === ri.id);
-      if (p) p.stock += ri.qty;
-    });
-  }
+  // Always restock the returned items immediately
+  checkedItems.forEach(ri => {
+    const p = products.find(x => x.id === ri.id);
+    if (p) p.stock += ri.qty;
+  });
 
   currentReturnTxn.returns.push(returnRecord);
-  currentReturnTxn.status = 'returned';
+  currentReturnTxn.status = isExchange ? 'exchanged' : 'returned';
+  lsSet(LS.products, products);
+  lsSet(LS.transactions, transactions);
+  closeReturnModal();
 
-  // Show credit note receipt
+  if (isExchange) {
+    // Hand off to exchange flow — cashier picks new items then settles
+    renderReturnsTable();
+    startExchange(returnRecord);
+    return;
+  }
+
+  // Plain refund — show credit note receipt
+  const cur = storeConfig.currency || 'KES';
   const creditTxn = {
     ...currentReturnTxn,
     id: returnRecord.creditNoteId,
     date: returnRecord.date,
     items: checkedItems,
-    subtotal: checkedItems.reduce((s,i) => s + i.price*i.qty, 0),
-    discount: 0,
-    vat: 0,
-    total: checkedItems.reduce((s,i) => s + i.price*i.qty, 0),
+    subtotal: returnedValue,
+    discount: 0, vat: 0,
+    total: returnedValue,
   };
 
-  closeReturnModal();
   renderInventoryTable();
-  toast(`✓ Return processed — ${returnRecord.creditNoteId}`);
   renderReturnsTable();
-
-  // Show credit note
+  toast('✓ Return processed — ' + returnRecord.creditNoteId + ' · Refund: ' + cur + ' ' + returnedValue.toLocaleString());
   window._currentReceiptTxn = creditTxn;
   document.getElementById('receiptContent').innerHTML = buildReceiptHTML(creditTxn, true);
   document.getElementById('receiptModal').style.display = 'flex';
@@ -1460,34 +1513,132 @@ function proceedDuplicate(){ closeTxnError(); lastCartHash=''; finalisePayment()
 // ── EXCHANGE & VOID ──
 
 function startExchange(returnRecord) {
-  const credit=returnRecord.creditValue; const cur=storeConfig.currency||'KES';
-  clearCart(); window._exchangeCredit=credit; window._exchangeCreditNoteId=returnRecord.creditNoteId;
-  document.getElementById('customerName').value=currentReturnTxn?currentReturnTxn.customer:'';
-  const banner=document.getElementById('exchangeBanner');
-  if(banner){ banner.style.display='flex';
-    document.getElementById('exchangeCreditAmt').textContent=cur+' '+credit.toLocaleString();
-    document.getElementById('exchangeCNId').textContent=returnRecord.creditNoteId; }
+  const credit = returnRecord.creditValue;
+  const cur = storeConfig.currency || 'KES';
+  clearCart();
+  window._exchangeCredit = credit;
+  window._exchangeCreditNoteId = returnRecord.creditNoteId;
+  document.getElementById('customerName').value = currentReturnTxn ? currentReturnTxn.customer : '';
+  // Show banner with credit amount so cashier knows what's available
+  const banner = document.getElementById('exchangeBanner');
+  if (banner) {
+    banner.style.display = 'flex';
+    document.getElementById('exchangeCreditAmt').textContent = cur + ' ' + credit.toLocaleString();
+    document.getElementById('exchangeCNId').textContent = returnRecord.creditNoteId;
+  }
   switchView('pos');
-  toast('Exchange started — credit: '+cur+' '+credit.toLocaleString()+'. Add items to cart.');
+  toast('Exchange started — credit: ' + cur + ' ' + credit.toLocaleString() + '. Add new items then click Proceed.');
 }
 
 function cancelExchange() {
-  window._exchangeCredit=0; window._exchangeCreditNoteId=null;
-  const banner=document.getElementById('exchangeBanner'); if(banner) banner.style.display='none';
+  window._exchangeCredit = 0;
+  window._exchangeCreditNoteId = null;
+  const banner = document.getElementById('exchangeBanner');
+  if (banner) banner.style.display = 'none';
   clearCart();
 }
 
+// Called when cashier clicks "Proceed to Exchange" from the exchange banner
 function applyExchangeCredit() {
-  const credit=window._exchangeCredit||0;
-  if(!credit||!cart.length){ toast('⚠ Add items to cart first'); return; }
-  const total=Math.round(getTotal()); const cur=storeConfig.currency||'KES';
-  discountAmt=Math.min(credit,total); recalc();
-  const banner=document.getElementById('exchangeBanner'); if(banner) banner.style.display='none';
-  window._exchangeCredit=0;
-  const topUp=Math.max(0,total-credit); const refund=Math.max(0,credit-total);
-  if(topUp>0) toast('Customer pays extra '+cur+' '+topUp.toLocaleString());
-  else if(refund>0) toast('Refund to customer: '+cur+' '+refund.toLocaleString());
-  else toast('✓ Exact exchange — no extra payment');
+  const credit = window._exchangeCredit || 0;
+  if (!credit) { toast('⚠ No exchange credit active'); return; }
+  if (!cart.length) { toast('⚠ Add items to cart first'); return; }
+  const newTotal = Math.round(getTotal());
+  const cur = storeConfig.currency || 'KES';
+  const topUp = Math.max(0, newTotal - credit);
+  const refund = Math.max(0, credit - newTotal);
+
+  if (topUp === 0 && refund === 0) {
+    // Exact match — complete silently, no payment needed
+    discountAmt = credit;
+    recalc();
+    finaliseExchange('exact', 0);
+    return;
+  }
+
+  // Open the exchange settlement modal to collect top-up or show refund
+  openExchangeSettlement(credit, newTotal, topUp, refund);
+}
+
+function openExchangeSettlement(credit, newTotal, topUp, refund) {
+  const cur = storeConfig.currency || 'KES';
+  const modal = document.getElementById('exchangeSettleModal');
+  document.getElementById('exSettleCreditVal').textContent = cur + ' ' + credit.toLocaleString();
+  document.getElementById('exSettleNewTotal').textContent  = cur + ' ' + newTotal.toLocaleString();
+
+  const topUpRow    = document.getElementById('exSettleTopUpRow');
+  const refundRow   = document.getElementById('exSettleRefundRow');
+  const topUpInput  = document.getElementById('exSettleTopUpInput');
+  const methodWrap  = document.getElementById('exSettleMethodWrap');
+  const refundNote  = document.getElementById('exSettleRefundNote');
+  const confirmBtn  = document.getElementById('exSettleConfirmBtn');
+
+  if (topUp > 0) {
+    // Customer owes more — show payment input
+    topUpRow.style.display  = 'flex';
+    refundRow.style.display = 'none';
+    topUpInput.value = topUp;
+    methodWrap.style.display = 'block';
+    refundNote.style.display = 'none';
+    document.getElementById('exSettleTopUpVal').textContent = cur + ' ' + topUp.toLocaleString();
+    confirmBtn.textContent = 'Collect ' + cur + ' ' + topUp.toLocaleString() + ' & Complete';
+  } else {
+    // Store owes customer change
+    topUpRow.style.display  = 'none';
+    refundRow.style.display = 'flex';
+    methodWrap.style.display = 'none';
+    refundNote.style.display = 'block';
+    document.getElementById('exSettleRefundVal').textContent = cur + ' ' + refund.toLocaleString();
+    refundNote.textContent = 'Return ' + cur + ' ' + refund.toLocaleString() + ' change to customer.';
+    confirmBtn.textContent = 'Give Refund & Complete';
+  }
+
+  window._exSettleTopUp  = topUp;
+  window._exSettleRefund = refund;
+  window._exSettleCredit = credit;
+  modal.style.display = 'flex';
+}
+
+function confirmExchangeSettlement() {
+  const topUp  = window._exSettleTopUp  || 0;
+  const refund = window._exSettleRefund || 0;
+  const credit = window._exSettleCredit || 0;
+  const cur = storeConfig.currency || 'KES';
+
+  if (topUp > 0) {
+    // Validate cashier entered the top-up amount
+    const entered = parseFloat(document.getElementById('exSettleTopUpInput').value) || 0;
+    if (entered < topUp) { toast('⚠ Top-up amount is less than required'); return; }
+  }
+
+  document.getElementById('exchangeSettleModal').style.display = 'none';
+  const type = topUp > 0 ? 'topup' : (refund > 0 ? 'refund' : 'exact');
+  discountAmt = Math.min(credit, Math.round(getTotal()));
+  recalc();
+  finaliseExchange(type, topUp > 0 ? topUp : refund);
+}
+
+function finaliseExchange(type, amount) {
+  const cur = storeConfig.currency || 'KES';
+  // Hide banner
+  const banner = document.getElementById('exchangeBanner');
+  if (banner) banner.style.display = 'none';
+
+  // Complete the transaction normally — discount covers the credit portion
+  finalisePayment();
+
+  // Override the success message to reflect the exchange
+  const msgs = {
+    exact:  '✓ Exchange complete — exact match, no extra payment',
+    topup:  '✓ Exchange complete — customer paid extra ' + cur + ' ' + amount.toLocaleString(),
+    refund: '✓ Exchange complete — refunded ' + cur + ' ' + amount.toLocaleString() + ' to customer',
+  };
+  // finalisePayment already showed success modal — update the sub text
+  const sub = document.getElementById('successSub');
+  if (sub) sub.textContent = msgs[type] || msgs.exact;
+
+  window._exchangeCredit = 0;
+  window._exchangeCreditNoteId = null;
 }
 
 function openVoidModal(txnId) {

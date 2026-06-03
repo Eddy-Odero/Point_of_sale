@@ -1206,3 +1206,31 @@
     background: var(--success); transition: background 0.4s, box-shadow 0.4s;
   }
   @keyframes netPulse { 0%,100%{box-shadow:0 0 0 3px rgba(220,80,80,0.25)} 50%{box-shadow:0 0 0 7px rgba(220,80,80,0)} }
+
+  /* ── RETURN OUTCOME BUTTONS ── */
+  .return-outcome-btns {
+    display: flex; gap: 10px; margin-top: 6px;
+  }
+  .return-outcome-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; padding: 14px 10px;
+    background: var(--card); border: 2px solid var(--border);
+    border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s;
+  }
+  .return-outcome-btn:hover { border-color: var(--border-gold); }
+  .return-outcome-btn.active {
+    border-color: var(--gold); background: var(--gold-dim);
+  }
+  .return-outcome-label {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+    color: var(--text);
+  }
+  .return-outcome-btn.active .return-outcome-label { color: var(--gold-light); }
+  .return-outcome-sub {
+    font-size: 10px; color: var(--text-faint); letter-spacing: 0.04em;
+  }
+
+  /* ── TRANSACTION STATUS BADGES (extended) ── */
+  .badge-exchanged { background:rgba(25,118,210,0.12); color:#1976d2; border:1px solid #1976d2; }
+  .badge-refunded  { background:rgba(212,144,42,0.15); color:#d4902a; border:1px solid #d4902a; }
+  .badge-damaged   { background:rgba(150,50,50,0.12);  color:#c0392b; border:1px solid #c0392b; }

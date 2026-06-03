@@ -67,7 +67,7 @@
 <div id="exchangeBanner" style="display:none" class="exchange-banner">
   <span>🔄 Exchange in progress — Credit: <strong id="exchangeCreditAmt">KES 0</strong> · CN: <span id="exchangeCNId"></span></span>
   <div style="display:flex;gap:8px">
-    <button class="json-link-btn" onclick="applyExchangeCredit()">✓ Apply Credit</button>
+    <button class="btn-gold" style="font-size:11px;padding:6px 14px" onclick="applyExchangeCredit()">→ Proceed to Exchange</button>
     <button class="json-link-btn" onclick="cancelExchange()">✕ Cancel</button>
   </div>
 </div>
@@ -213,9 +213,31 @@
       <button class="modal-close" onclick="closeReturnModal()">✕</button>
     </div>
     <div class="modal-body">
+
+      <!-- Transaction info -->
       <div class="return-receipt-info" id="returnReceiptInfo"></div>
+
+      <!-- What are we doing with this return? -->
       <div class="form-row" style="margin-top:14px">
-        <label class="form-label">Return Type</label>
+        <label class="form-label">What does the customer want?</label>
+        <div class="return-outcome-btns">
+          <button class="return-outcome-btn active" id="outcomeRefund" onclick="selectOutcome('refund')">
+            <span style="font-size:18px">💰</span>
+            <span class="return-outcome-label">Refund</span>
+            <span class="return-outcome-sub">Money back</span>
+          </button>
+          <button class="return-outcome-btn" id="outcomeExchange" onclick="selectOutcome('exchange')">
+            <span style="font-size:18px">🔄</span>
+            <span class="return-outcome-label">Exchange</span>
+            <span class="return-outcome-sub">Pick something else</span>
+          </button>
+        </div>
+        <input type="hidden" id="exchangeToggle" value="false">
+      </div>
+
+      <!-- Return reason (only for refunds) -->
+      <div id="returnReasonRow" class="form-row">
+        <label class="form-label">Reason</label>
         <div class="return-type-btns">
           <button class="return-type-btn active" data-type="return" onclick="selectReturnType('return')">↩ Customer Return</button>
           <button class="return-type-btn" data-type="damaged" onclick="selectReturnType('damaged')">💔 Damaged</button>
@@ -223,18 +245,30 @@
           <button class="return-type-btn" data-type="disposed" onclick="selectReturnType('disposed')">🗑 Disposed</button>
         </div>
       </div>
+
+      <!-- Exchange hint -->
+      <div id="exchangeHint" style="display:none;background:var(--gold-dim);border:1px solid var(--border-gold);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--gold-light);line-height:1.7">
+        ✓ Returned items will be restocked.<br>
+        After confirming, the POS opens with the return value as a credit.<br>
+        Add new items to the cart, then click <strong>Proceed to Exchange</strong>.
+      </div>
+
+      <!-- Items checklist -->
       <div class="form-row">
-        <label class="form-label">Items to Return</label>
+        <label class="form-label">Items being returned</label>
         <div id="returnItemsList"></div>
       </div>
+
+      <!-- Notes -->
       <div class="form-row">
-        <label class="form-label">Reason / Notes</label>
-        <input class="form-input" id="returnNotes" placeholder="Optional notes…">
+        <label class="form-label">Notes (optional)</label>
+        <input class="form-input" id="returnNotes" placeholder="e.g. Wrong size, defective zip…">
       </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeReturnModal()">Cancel</button>
-      <button class="btn-gold" onclick="confirmReturn()" style="padding:10px 24px">Confirm Return</button>
+      <button class="btn-gold" id="confirmReturnBtn" onclick="confirmReturn()" style="padding:10px 24px">Confirm Refund</button>
     </div>
   </div>
 </div>
@@ -605,6 +639,64 @@
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="document.getElementById('backupModal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXCHANGE SETTLEMENT MODAL -->
+<div class="overlay" id="exchangeSettleModal" style="display:none">
+  <div class="modal" style="width:420px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Exchange Settlement</div>
+      <button class="modal-close" onclick="document.getElementById('exchangeSettleModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Summary rows -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);padding:4px 0">
+          <span>Return credit</span><span style="color:var(--success)" id="exSettleCreditVal">KES 0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);padding:4px 0;border-top:1px solid var(--border);margin-top:4px;padding-top:8px">
+          <span>New items total</span><span id="exSettleNewTotal">KES 0</span>
+        </div>
+      </div>
+
+      <!-- Top-up row (customer owes more) -->
+      <div id="exSettleTopUpRow" style="display:none;flex-direction:column;gap:10px">
+        <div style="background:rgba(201,168,76,0.1);border:1px solid var(--border-gold);border-radius:var(--radius);padding:12px 16px;font-size:12px;color:var(--gold-light)">
+          Customer needs to pay an extra <strong id="exSettleTopUpVal">KES 0</strong>
+        </div>
+        <div id="exSettleMethodWrap">
+          <label class="form-label">Payment method for top-up</label>
+          <div class="pay-methods" style="margin-bottom:10px">
+            <div class="pay-method active" onclick="this.parentElement.querySelectorAll('.pay-method').forEach(x=>x.classList.remove('active'));this.classList.add('active')">
+              <div class="pay-method-icon">💵</div><div class="pay-method-name">Cash</div>
+            </div>
+            <div class="pay-method" onclick="this.parentElement.querySelectorAll('.pay-method').forEach(x=>x.classList.remove('active'));this.classList.add('active')">
+              <div class="pay-method-icon">💳</div><div class="pay-method-name">Card</div>
+            </div>
+            <div class="pay-method" onclick="this.parentElement.querySelectorAll('.pay-method').forEach(x=>x.classList.remove('active'));this.classList.add('active')">
+              <div class="pay-method-icon">📱</div><div class="pay-method-name">M-Pesa</div>
+            </div>
+          </div>
+          <label class="form-label">Amount received</label>
+          <input class="form-input" id="exSettleTopUpInput" type="number" placeholder="0" style="font-size:16px;padding:12px">
+        </div>
+      </div>
+
+      <!-- Refund row (store owes customer) -->
+      <div id="exSettleRefundRow" style="display:none;flex-direction:column;gap:10px">
+        <div style="background:rgba(74,158,107,0.1);border:1px solid var(--success);border-radius:var(--radius);padding:12px 16px;font-size:12px;color:var(--success)">
+          Return <strong id="exSettleRefundVal">KES 0</strong> change to the customer
+        </div>
+        <div id="exSettleRefundNote" style="font-size:11px;color:var(--text-faint);letter-spacing:0.04em"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('exchangeSettleModal').style.display='none'">Cancel</button>
+      <button class="btn-gold" id="exSettleConfirmBtn" onclick="confirmExchangeSettlement()" style="padding:10px 24px">Complete Exchange</button>
     </div>
   </div>
 </div>
