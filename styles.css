@@ -1415,3 +1415,86 @@
   .sms-outbox-phone     { color: var(--text-faint); }
   .sms-outbox-date      { color: var(--text-faint); margin-left: auto; }
   .sms-outbox-msg       { color: var(--text-dim); font-size: 11px; line-height: 1.5; padding-left: 2px; }
+
+  /* ── CATALOGUE MODAL ── */
+  .catalogue-modal {
+    width: 90vw; max-width: 1000px; height: 90vh;
+    display: flex; flex-direction: column;
+  }
+  .catalogue-modal-body {
+    display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 0;
+  }
+  .catalogue-options {
+    display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .catalogue-option-group {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .catalogue-layout-btns { display: flex; gap: 4px; }
+  .cat-layout-btn {
+    background: none; border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text-faint); font-family: 'Montserrat',sans-serif;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.06em;
+    padding: 4px 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .cat-layout-btn.active { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+  .catalogue-preview-wrap {
+    flex: 1; overflow-y: auto; background: #2a2a2a; padding: 24px;
+  }
+
+  /* ── CATALOGUE DOCUMENT (preview inside modal) ── */
+  .cat-doc { max-width: 800px; margin: 0 auto; font-family: 'Montserrat', sans-serif; }
+  .cat-cover {
+    background: linear-gradient(160deg,#1a1208 0%,#2e2010 60%,#1a1208 100%);
+    padding: 80px 40px; text-align: center; border-radius: 8px; margin-bottom: 20px;
+  }
+  .cat-cover-brand {
+    font-family: 'Cormorant Garamond',serif; font-size: 44px; font-weight: 300;
+    letter-spacing: 0.3em; color: #c9a84c;
+  }
+  .cat-cover-line  { width: 60px; height: 1px; background: #c9a84c; margin: 16px auto; }
+  .cat-cover-sub   { font-size: 11px; letter-spacing: 0.4em; color: #a08040; margin-bottom: 10px; }
+  .cat-cover-date  { font-size: 11px; letter-spacing: 0.15em; color: #888; }
+  .cat-cover-count { margin-top: 32px; font-size: 10px; color: #666; letter-spacing: 0.1em; }
+
+  .cat-section { background: #fff; padding: 28px 32px; border-radius: 8px; margin-bottom: 20px; }
+  .cat-section-header {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a; padding-bottom: 8px;
+  }
+  .cat-section-title {
+    font-family: 'Cormorant Garamond',serif; font-size: 26px;
+    font-weight: 300; letter-spacing: 0.15em; color: #1a1a1a;
+  }
+  .cat-section-count { font-size: 10px; color: #888; letter-spacing: 0.1em; }
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(var(--cat-cols,2), 1fr); gap: 16px;
+  }
+  .cat-product-card {
+    border: 1px solid #e8e0cc; border-radius: 6px; overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .cat-product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .cat-product-card.cat-oos { opacity: 0.55; }
+  .cat-product-img-wrap {
+    position: relative; aspect-ratio: 1; background: #f5f0e8;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .cat-product-img   { width: 100%; height: 100%; object-fit: cover; }
+  .cat-product-emoji { font-size: 44px; }
+  .cat-oos-badge {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.65); color: #fff; font-size: 9px;
+    letter-spacing: 0.1em; padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+  }
+  .cat-product-info  { padding: 10px 12px; background: #fff; }
+  .cat-product-name  { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; margin-bottom: 3px; color: #1a1a1a; line-height: 1.3; }
+  .cat-product-sku   { font-size: 9px; color: #888; letter-spacing: 0.1em; margin-bottom: 3px; }
+  .cat-product-price { font-family: 'Cormorant Garamond',serif; font-size: 16px; color: #8a6d2f; }
+  .cat-footer {
+    background: #fff; padding: 24px 32px; text-align: center;
+    border-radius: 8px; margin-bottom: 8px;
+  }
+  .cat-footer-brand { font-family: 'Cormorant Garamond',serif; font-size: 18px; letter-spacing: 0.25em; color: #8a6d2f; margin-bottom: 4px; }
+  .cat-footer-note  { font-size: 10px; color: #aaa; letter-spacing: 0.08em; }

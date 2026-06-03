@@ -1184,7 +1184,7 @@ function processVoiceCommand(cmd) {
     clearCart(); stopVoice(); toast('🎙 Cart cleared'); return;
   }
   // "checkout" / "pay"
-  if (cmd.includes('check out') || cmd.includes('proceed') || cmd.includes('pay now')) {
+  if (cmd.includes('checkout') || cmd.includes('proceed') || cmd.includes('pay now')) {
     if (cart.length) { openPayment(); stopVoice(); }
     else toast('🎙 Cart is empty'); return;
   }
@@ -2528,4 +2528,197 @@ function toggleSmsOptIn(custId) {
   lsSet(LS.customers, customers);
   renderCustomersTable();
   toast(c.smsOptIn ? `✓ ${c.name} opted in to SMS` : `${c.name} opted out`);
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  PRODUCT CATALOGUE / LOOKBOOK
+// ═══════════════════════════════════════════════════════
+
+let catColumns = 2;
+
+function generateCatalogue() {
+  // Populate category filter
+  const sel = document.getElementById('catFilterSelect');
+  sel.innerHTML = '<option value="all">All Categories</option>'
+    + categories.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+  renderCataloguePreview();
+  document.getElementById('catalogueModal').style.display = 'flex';
+}
+
+function setCatLayout(cols) {
+  catColumns = cols;
+  [2,3,4].forEach(n => {
+    const btn = document.getElementById('catLayout'+n);
+    if (btn) btn.classList.toggle('active', n === cols);
+  });
+  renderCataloguePreview();
+}
+
+function getCatalogueProducts() {
+  const catFilter   = document.getElementById('catFilterSelect').value;
+  const hideOOS     = document.getElementById('catHideOutStock').checked;
+  return products.filter(p => {
+    if (catFilter !== 'all' && p.category !== catFilter) return false;
+    if (hideOOS && p.stock === 0) return false;
+    return true;
+  });
+}
+
+function renderCataloguePreview() {
+  const preview     = document.getElementById('cataloguePreview');
+  const showPrices  = document.getElementById('catShowPrices').checked;
+  const showSKU     = document.getElementById('catShowSKU').checked;
+  const cur         = storeConfig.currency || 'KES';
+  const storeName   = storeConfig.name || 'TINAH COSMETICS';
+  const filtered    = getCatalogueProducts();
+
+  // Group by category
+  const grouped = {};
+  filtered.forEach(p => {
+    const cat = categories.find(c => c.id === p.category);
+    const label = cat ? cat.label : (p.category || 'Other');
+    if (!grouped[label]) grouped[label] = [];
+    grouped[label].push(p);
+  });
+
+  if (!filtered.length) {
+    preview.innerHTML = '<div style="text-align:center;padding:60px;color:#888;font-size:13px">No products match the current filters.</div>';
+    return;
+  }
+
+  preview.innerHTML = buildCatalogueHTML(grouped, showPrices, showSKU, cur, storeName, catColumns, false);
+}
+
+function buildCatalogueHTML(grouped, showPrices, showSKU, cur, storeName, cols, forPrint) {
+  const coverDate = new Date().toLocaleDateString('en-KE', { month:'long', year:'numeric' });
+
+  let html = `
+    <div class="cat-doc" style="--cat-cols:${cols}">
+      <!-- Cover page -->
+      <div class="cat-cover ${forPrint ? 'cat-page-break' : ''}">
+        <div class="cat-cover-brand">${storeName}</div>
+        <div class="cat-cover-line"></div>
+        <div class="cat-cover-sub">PRODUCT CATALOGUE</div>
+        <div class="cat-cover-date">${coverDate}</div>
+        <div class="cat-cover-count">${Object.values(grouped).flat().length} Products</div>
+      </div>`;
+
+  Object.entries(grouped).forEach(([catLabel, items]) => {
+    html += `
+      <div class="${forPrint ? 'cat-page-break' : 'cat-section'}">
+        <div class="cat-section-header">
+          <div class="cat-section-title">${catLabel}</div>
+          <div class="cat-section-count">${items.length} item${items.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="cat-grid">`;
+
+    items.forEach(p => {
+      const src      = p.image_data || p.image_url;
+      const imgHTML  = src
+        ? `<img class="cat-product-img" src="${src}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : '';
+      const fallback = `<div class="cat-product-emoji" ${src ? 'style="display:none"' : ''}>${p.emoji || '🏷'}</div>`;
+      const stockBadge = p.stock === 0
+        ? `<div class="cat-oos-badge">Out of Stock</div>` : '';
+      const priceLine  = showPrices
+        ? `<div class="cat-product-price">${cur} ${p.price.toLocaleString()}</div>` : '';
+      const skuLine    = showSKU && p.sku
+        ? `<div class="cat-product-sku">${p.sku}</div>` : '';
+
+      html += `
+          <div class="cat-product-card ${p.stock === 0 ? 'cat-oos' : ''}">
+            <div class="cat-product-img-wrap">
+              ${imgHTML}${fallback}${stockBadge}
+            </div>
+            <div class="cat-product-info">
+              <div class="cat-product-name">${p.name}</div>
+              ${skuLine}${priceLine}
+            </div>
+          </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += `
+      <div class="cat-footer">
+        <div class="cat-footer-brand">${storeName}</div>
+        <div class="cat-footer-note">Prices in ${cur} · Subject to change without notice</div>
+      </div>
+    </div>`;
+
+  return html;
+}
+
+function printCatalogue() {
+  const showPrices = document.getElementById('catShowPrices').checked;
+  const showSKU    = document.getElementById('catShowSKU').checked;
+  const cur        = storeConfig.currency || 'KES';
+  const storeName  = storeConfig.name || 'TINAH COSMETICS';
+  const filtered   = getCatalogueProducts();
+  const grouped    = {};
+  filtered.forEach(p => {
+    const cat   = categories.find(c => c.id === p.category);
+    const label = cat ? cat.label : (p.category || 'Other');
+    if (!grouped[label]) grouped[label] = [];
+    grouped[label].push(p);
+  });
+
+  const bodyHTML = buildCatalogueHTML(grouped, showPrices, showSKU, cur, storeName, catColumns, true);
+  const win = window.open('', '_blank', 'width=900,height=1100');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>${storeName} — Catalogue</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>${cataloguePrintCSS(catColumns)}</style>
+    </head><body>${bodyHTML}
+    <script>window.onload=()=>window.print()<\/script></body></html>`);
+  win.document.close();
+}
+
+function downloadCataloguePDF() {
+  toast('Opening print dialog — choose "Save as PDF" in your printer options');
+  setTimeout(printCatalogue, 200);
+}
+
+function cataloguePrintCSS(cols) {
+  return `
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#fff;font-family:'Montserrat',sans-serif;color:#1a1a1a}
+    .cat-doc{max-width:900px;margin:0 auto}
+    .cat-page-break{page-break-before:always}
+    .cat-cover{
+      height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      background:linear-gradient(160deg,#1a1208 0%,#2e2010 60%,#1a1208 100%);
+      color:#fff;text-align:center;padding:60px;
+    }
+    .cat-cover-brand{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;letter-spacing:0.3em;color:#c9a84c}
+    .cat-cover-line{width:80px;height:1px;background:#c9a84c;margin:20px auto}
+    .cat-cover-sub{font-size:13px;letter-spacing:0.4em;color:#a08040;margin-bottom:12px}
+    .cat-cover-date{font-size:12px;letter-spacing:0.2em;color:#888}
+    .cat-cover-count{margin-top:40px;font-size:11px;color:#666;letter-spacing:0.1em}
+    .cat-section{padding:40px 48px;page-break-before:auto}
+    .cat-section-header{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;border-bottom:2px solid #1a1a1a;padding-bottom:10px}
+    .cat-section-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;letter-spacing:0.15em}
+    .cat-section-count{font-size:11px;color:#888;letter-spacing:0.1em}
+    .cat-grid{display:grid;grid-template-columns:repeat(${cols},1fr);gap:20px}
+    .cat-product-card{border:1px solid #e8e0cc;border-radius:8px;overflow:hidden;page-break-inside:avoid}
+    .cat-product-card.cat-oos{opacity:0.55}
+    .cat-product-img-wrap{position:relative;aspect-ratio:1;background:#f5f0e8;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .cat-product-img{width:100%;height:100%;object-fit:cover}
+    .cat-product-emoji{font-size:48px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f0e8}
+    .cat-oos-badge{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;font-size:9px;letter-spacing:0.1em;padding:3px 10px;border-radius:20px;white-space:nowrap}
+    .cat-product-info{padding:10px 12px}
+    .cat-product-name{font-size:12px;font-weight:600;letter-spacing:0.04em;margin-bottom:3px;line-height:1.3}
+    .cat-product-sku{font-size:9px;color:#888;letter-spacing:0.1em;margin-bottom:3px}
+    .cat-product-price{font-family:'Cormorant Garamond',serif;font-size:16px;color:#8a6d2f;font-weight:400}
+    .cat-footer{padding:32px 48px;text-align:center;border-top:1px solid #e8e0cc;margin-top:24px}
+    .cat-footer-brand{font-family:'Cormorant Garamond',serif;font-size:18px;letter-spacing:0.25em;color:#8a6d2f;margin-bottom:6px}
+    .cat-footer-note{font-size:10px;color:#aaa;letter-spacing:0.08em}
+    @media print{
+      .cat-page-break{page-break-before:always}
+      .cat-product-card{page-break-inside:avoid}
+    }
+  `;
 }

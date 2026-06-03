@@ -53,6 +53,7 @@
     <button class="json-link-btn" onclick="triggerJsonLoad()">📂 Load JSON</button>
     <button class="json-link-btn" onclick="openExportModal()">💾 Export JSON</button>
     <button class="json-link-btn" onclick="openBackupModal()">🗄 Backup / Restore</button>
+    <button class="json-link-btn" onclick="generateCatalogue()">📖 Catalogue</button>
   </div>
 </div>
 <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJsonFile(event)">
@@ -938,6 +939,58 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="document.getElementById('smsModal').style.display='none'">Cancel</button>
       <button class="btn-gold" onclick="sendSmsBlast()" style="padding:10px 28px">Send to All →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATALOGUE MODAL -->
+<div class="overlay" id="catalogueModal" style="display:none">
+  <div class="modal catalogue-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Product Catalogue</div>
+      <button class="modal-close" onclick="document.getElementById('catalogueModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body catalogue-modal-body">
+
+      <!-- Options row -->
+      <div class="catalogue-options">
+        <div class="catalogue-option-group">
+          <label class="form-label">Layout</label>
+          <div class="catalogue-layout-btns">
+            <button class="cat-layout-btn active" id="catLayout2" onclick="setCatLayout(2)">2 per row</button>
+            <button class="cat-layout-btn" id="catLayout3" onclick="setCatLayout(3)">3 per row</button>
+            <button class="cat-layout-btn" id="catLayout4" onclick="setCatLayout(4)">4 per row</button>
+          </div>
+        </div>
+        <div class="catalogue-option-group">
+          <label class="form-label">Filter category</label>
+          <select class="form-select" id="catFilterSelect" onchange="renderCataloguePreview()" style="width:160px"></select>
+        </div>
+        <div class="catalogue-option-group">
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);cursor:pointer">
+            <input type="checkbox" id="catShowPrices" checked onchange="renderCataloguePreview()" style="accent-color:var(--gold)">
+            Show prices
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);cursor:pointer">
+            <input type="checkbox" id="catShowSKU" onchange="renderCataloguePreview()" style="accent-color:var(--gold)">
+            Show SKU
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);cursor:pointer">
+            <input type="checkbox" id="catHideOutStock" onchange="renderCataloguePreview()" style="accent-color:var(--gold)">
+            Hide out-of-stock
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button class="btn-outline" onclick="printCatalogue()">🖨 Print</button>
+          <button class="btn-gold" onclick="downloadCataloguePDF()" style="padding:8px 18px">⬇ PDF</button>
+        </div>
+      </div>
+
+      <!-- Live preview -->
+      <div class="catalogue-preview-wrap">
+        <div id="cataloguePreview"></div>
+      </div>
+
     </div>
   </div>
 </div>
