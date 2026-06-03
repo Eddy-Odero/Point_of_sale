@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TINAH COSMETICS — Luxury Fashion &amp; Beauty | Kisumu</title>
+<title>TINAH COSMETICS — Luxury Fashion &amp; Beauty | Nairobi</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <link rel="shortcut icon" href="https://thumbs.dreamstime.com/b/golden-woman-face-rose-beauty-salon-logo-vector-illustration-beautiful-flower-spa-cosmetics-fashion-boutique-hotel-333287283.jpg"/>
 <style>
@@ -353,6 +353,11 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
   .hero-ctas{flex-direction:column;align-items:center}
   .spot-btns{flex-direction:column}
 }
+/* section show/hide transition */
+#categories,#spotlight,#about,.newsletter,.marquee-wrap,#home{transition:opacity .25s}
+/* when in filter mode, shop section sits right below the nav */
+body.filter-mode #shop{padding-top:96px}
+body.filter-mode #shop .s-header{margin-bottom:32px}
 </style>
 </head>
 <body>
@@ -362,16 +367,16 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
 
 <!-- NAV -->
 <nav class="nav" id="nav">
-  <a href="#" class="nav-logo">
+  <a href="#" class="nav-logo" onclick="goHome(event)">
     <img src="https://thumbs.dreamstime.com/b/golden-woman-face-rose-beauty-salon-logo-vector-illustration-beautiful-flower-spa-cosmetics-fashion-boutique-hotel-333287283.jpg" alt="TINAH">
     TINAH <em>COSMETICS</em>
   </a>
   <div class="nav-links">
-    <a class="nav-link active" href="#shop" onclick="scrollTo('shop')">Shop</a>
-    <a class="nav-link" href="#" onclick="filterGo('clothing')">Clothing</a>
-    <a class="nav-link" href="#" onclick="filterGo('shoes')">Shoes</a>
-    <a class="nav-link" href="#" onclick="filterGo('cosmetics')">Cosmetics</a>
-    <a class="nav-link" href="#about">About</a>
+    <a class="nav-link active" id="nl_shop" href="#" onclick="goShopAll(event)">Shop</a>
+    <a class="nav-link" id="nl_clothing" href="#" onclick="filterGo('clothing',event)">Clothing</a>
+    <a class="nav-link" id="nl_shoes" href="#" onclick="filterGo('shoes',event)">Shoes</a>
+    <a class="nav-link" id="nl_cosmetics" href="#" onclick="filterGo('cosmetics',event)">Cosmetics</a>
+    <a class="nav-link" id="nl_about" href="#" onclick="goAbout(event)">About</a>
   </div>
   <div class="nav-right">
     <button class="nav-icon-btn" onclick="openSearch()" title="Search (Ctrl+K)">
@@ -387,11 +392,11 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
 
 <!-- MOBILE NAV -->
 <div class="mobile-nav" id="mobileNav">
-  <a class="mobile-nav-link" href="#shop" onclick="closeMobileNav();scrollTo('shop')">Shop All</a>
-  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();filterGo('clothing')">Clothing</a>
-  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();filterGo('shoes')">Shoes</a>
-  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();filterGo('cosmetics')">Cosmetics</a>
-  <a class="mobile-nav-link" href="#about">About</a>
+  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();goShopAll(event)">Shop All</a>
+  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();filterGo('clothing',event)">Clothing</a>
+  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();filterGo('shoes',event)">Shoes</a>
+  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();filterGo('cosmetics',event)">Cosmetics</a>
+  <a class="mobile-nav-link" href="#" onclick="closeMobileNav();goAbout(event)">About</a>
 </div>
 
 <!-- HERO -->
@@ -405,8 +410,8 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
     <h1 class="hero-title">Wear what<br><em>you love.</em></h1>
     <p class="hero-sub">Premium clothing, cosmetics &amp; shoes curated for the modern Kenyan woman. Delivered to your door.</p>
     <div class="hero-ctas">
-      <button class="btn-primary" onclick="scrollTo('shop')">Shop the Collection</button>
-      <button class="btn-secondary" onclick="filterGo('cosmetics')">Explore Beauty</button>
+      <button class="btn-primary" onclick="goShopAll(event)">Shop the Collection</button>
+      <button class="btn-secondary" onclick="filterGo('cosmetics',event)">Explore Beauty</button>
     </div>
   </div>
   <div class="hero-scroll"><div class="hero-scroll-lbl">Scroll</div><div class="hero-scroll-bar"></div></div>
@@ -427,7 +432,7 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
 </section>
 
 <!-- SPOTLIGHT -->
-<div class="spotlight">
+<div class="spotlight" id="spotlight">
   <div class="spotlight-inner">
     <div class="spot-img-wrap reveal" id="spotImg"><div class="spot-corner"></div><div class="spot-badge">Featured</div></div>
     <div class="reveal" id="spotContent"></div>
@@ -494,10 +499,10 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
       <div>
         <div class="f-col-title">Shop</div>
         <div class="f-links">
-          <a class="f-link" href="#" onclick="filterGo('clothing')">Clothing</a>
-          <a class="f-link" href="#" onclick="filterGo('shoes')">Shoes</a>
-          <a class="f-link" href="#" onclick="filterGo('cosmetics')">Cosmetics</a>
-          <a class="f-link" href="#shop" onclick="scrollTo('shop')">All Products</a>
+          <a class="f-link" href="#" onclick="filterGo('clothing',event)">Clothing</a>
+          <a class="f-link" href="#" onclick="filterGo('shoes',event)">Shoes</a>
+          <a class="f-link" href="#" onclick="filterGo('cosmetics',event)">Cosmetics</a>
+          <a class="f-link" href="#" onclick="goShopAll(event)">All Products</a>
         </div>
       </div>
       <div>
@@ -1321,8 +1326,7 @@ function buildSpotlight(){
     <div class="spot-btns">
       <button class="btn-primary" onclick="openDrawer(${feat.id})">Quick View</button>
       <button class="btn-secondary" onclick="addToCart(${feat.id})">Add to Bag</button>
-    </div>`;
-}
+    </div>`;}
 
 // ═══════════ FILTER PILLS ═══════════
 function buildPills(){
@@ -1648,10 +1652,102 @@ function subscribe(e){
   document.getElementById('nlEmail').value = '';
 }
 
-// ═══════════ SCROLL HELPER ═══════════
-function scrollTo(id){
-  event && event.preventDefault && event.preventDefault();
-  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+// ═══════════ PAGE MODE NAVIGATION ═══════════
+// Sections hidden in category/filter mode
+const FULL_SECTIONS = ['home','categories','spotlight','about','.newsletter','.marquee-wrap'];
+let isFilterMode = false;
+
+function setNavActive(key) {
+  ['shop','clothing','shoes','cosmetics','about'].forEach(k => {
+    const el = document.getElementById(`nl_${k}`);
+    if (el) el.classList.toggle('active', k === key);
+  });
+}
+
+function showAllSections() {
+  FULL_SECTIONS.forEach(sel => {
+    const el = sel.startsWith('.') ? document.querySelector(sel) : document.getElementById(sel);
+    if (el) { el.style.display = ''; el.style.opacity = '1'; }
+  });
+  document.body.classList.remove('filter-mode');
+  isFilterMode = false;
+}
+
+function hideSectionsForFilter() {
+  FULL_SECTIONS.forEach(sel => {
+    const el = sel.startsWith('.') ? document.querySelector(sel) : document.getElementById(sel);
+    if (el) el.style.display = 'none';
+  });
+  document.body.classList.add('filter-mode');
+  isFilterMode = true;
+}
+
+// Logo click — go back to full home view
+function goHome(e) {
+  if (e) e.preventDefault();
+  showAllSections();
+  setNavActive('shop');
+  activeFilter = 'all';
+  visibleCount = 12;
+  buildPills();
+  renderShop();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// "Shop" nav — show everything, scroll to shop section, set all filter
+function goShopAll(e) {
+  if (e) e.preventDefault();
+  showAllSections();
+  setNavActive('shop');
+  activeFilter = 'all';
+  visibleCount = 12;
+  buildPills();
+  renderShop();
+  setTimeout(() => document.getElementById('shop').scrollIntoView({behavior:'smooth'}), 30);
+}
+
+// Category nav (Clothing / Shoes / Cosmetics) — hide non-shop sections
+function filterGo(cat, e) {
+  if (e) e.preventDefault();
+  // Jump to top instantly first so the hidden hero doesn't flash
+  window.scrollTo({top: 0, behavior: 'instant'});
+  hideSectionsForFilter();
+  setNavActive(cat);
+  activeFilter = cat;
+  visibleCount = 12;
+  buildPills();
+  renderShop();
+  // Small delay to let display:none apply, then scroll shop into view under nav
+  setTimeout(() => {
+    const shopEl = document.getElementById('shop');
+    if (shopEl) shopEl.scrollIntoView({behavior:'smooth'});
+  }, 40);
+}
+
+// "About" nav — show all sections, scroll to about
+function goAbout(e) {
+  if (e) e.preventDefault();
+  showAllSections();
+  setNavActive('about');
+  setTimeout(() => {
+    document.getElementById('about').scrollIntoView({behavior:'smooth'});
+  }, 60);
+}
+
+// Filter pills also need to trigger filterGo logic when in filter mode
+function setFilter(f) {
+  activeFilter = f;
+  visibleCount = 12;
+  if (f === 'all') {
+    // "All" pill in filter mode — show sections back, set shop active
+    showAllSections();
+    setNavActive('shop');
+  } else {
+    hideSectionsForFilter();
+    setNavActive(f);
+  }
+  buildPills();
+  renderShop();
 }
 
 // ═══════════ TOAST ═══════════
