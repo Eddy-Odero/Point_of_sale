@@ -10,6 +10,7 @@
     rel="shortcut icon"
     href="https://thumbs.dreamstime.com/b/golden-woman-face-rose-beauty-salon-logo-vector-illustration-beautiful-flower-spa-cosmetics-fashion-boutique-hotel-333287283.jpg"
   />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -27,6 +28,7 @@
     <button class="tab-btn active" onclick="switchView('pos')">POS</button>
     <button class="tab-btn" onclick="switchView('inventory')">Inventory</button>
     <button class="tab-btn" onclick="switchView('returns')">Returns</button>
+    <button class="tab-btn" onclick="switchView('reports')">Reports</button>
   </div>
   <div class="topbar-right">
     <div id="clock"></div>
@@ -53,6 +55,73 @@
   </div>
 </div>
 <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJsonFile(event)">
+
+<!-- REPORTS VIEW -->
+<div id="reportsView" style="display:none;flex-direction:column;overflow:hidden;flex:1">
+
+  <!-- Report toolbar -->
+  <div class="report-toolbar">
+    <div class="report-toolbar-left">
+      <div class="report-period-btns">
+        <button class="report-period-btn active" onclick="setReportPeriod('today')">Today</button>
+        <button class="report-period-btn" onclick="setReportPeriod('week')">This Week</button>
+        <button class="report-period-btn" onclick="setReportPeriod('month')">This Month</button>
+        <button class="report-period-btn" onclick="setReportPeriod('custom')">Custom</button>
+      </div>
+      <div class="report-custom-range" id="reportCustomRange" style="display:none">
+        <input type="date" class="form-input" id="reportFrom" style="width:140px;padding:6px 10px">
+        <span style="color:var(--text-faint);font-size:11px">to</span>
+        <input type="date" class="form-input" id="reportTo"   style="width:140px;padding:6px 10px">
+        <button class="btn-gold" style="padding:6px 14px;font-size:11px" onclick="renderReports()">Go</button>
+      </div>
+    </div>
+    <div class="report-toolbar-right">
+      <button class="btn-outline" onclick="exportReportCSV()">⬇ CSV</button>
+      <button class="btn-gold"    onclick="exportReportPDF()">⬇ PDF</button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="report-scroll">
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- Two-column charts -->
+    <div class="report-charts-row">
+      <div class="report-card report-card-wide">
+        <div class="report-card-title">Revenue Trend</div>
+        <canvas id="chartRevenueTrend" height="80"></canvas>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">Sales by Category</div>
+        <canvas id="chartCategoryDonut" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- Hourly heatmap -->
+    <div class="report-card" style="margin:0 20px 16px">
+      <div class="report-card-title">Hourly Sales Heatmap</div>
+      <div class="heatmap-wrap" id="heatmapWrap"></div>
+    </div>
+
+    <!-- Best-sellers & Dead stock side by side -->
+    <div class="report-charts-row">
+      <div class="report-card">
+        <div class="report-card-title">Best Sellers <span class="report-card-sub">by revenue</span></div>
+        <canvas id="chartBestSellers" height="180"></canvas>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">Dead Stock <span class="report-card-sub">0 sales in 30 days</span></div>
+        <div id="deadStockList" class="dead-stock-list"></div>
+      </div>
+    </div>
+
+    <!-- Cashier leaderboard -->
+    <div class="report-card" style="margin:0 20px 24px">
+      <div class="report-card-title">Cashier Performance</div>
+      <div id="cashierLeaderboard" class="cashier-leaderboard"></div>
+    </div>
+  </div>
+</div>
 
 <!-- M-PESA PENDING TRAY -->
 <div id="mpesaTray" style="display:none" class="mpesa-tray">

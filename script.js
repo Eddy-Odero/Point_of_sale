@@ -199,13 +199,16 @@ function updateClock() {
 
 //  TABS
 function switchView(v) {
-  document.getElementById('posView').style.display        = v === 'pos'       ? ''      : 'none';
-  document.getElementById('inventoryView').style.display  = v === 'inventory' ? 'flex'  : 'none';
-  document.getElementById('returnsView').style.display    = v === 'returns'   ? 'flex'  : 'none';
+  document.getElementById('posView').style.display        = v === 'pos'       ? ''     : 'none';
+  document.getElementById('inventoryView').style.display  = v === 'inventory' ? 'flex' : 'none';
+  document.getElementById('returnsView').style.display    = v === 'returns'   ? 'flex' : 'none';
+  document.getElementById('reportsView').style.display    = v === 'reports'   ? 'flex' : 'none';
   document.querySelectorAll('.tab-btn').forEach((b,i) =>
-    b.classList.toggle('active', (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')));
+    b.classList.toggle('active',
+      (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')||(i===3&&v==='reports')));
   if (v === 'inventory') renderInventoryTable();
-  if (v === 'returns') renderReturnsTable();
+  if (v === 'returns')   renderReturnsTable();
+  if (v === 'reports')   renderReports();
 }
 
 //  CATEGORY UI
@@ -1172,7 +1175,7 @@ function processVoiceCommand(cmd) {
     clearCart(); stopVoice(); toast('🎙 Cart cleared'); return;
   }
   // "checkout" / "pay"
-  if (cmd.includes('check out') || cmd.includes('proceed') || cmd.includes('pay now')) {
+  if (cmd.includes('checkout') || cmd.includes('proceed') || cmd.includes('pay now')) {
     if (cart.length) { openPayment(); stopVoice(); }
     else toast('🎙 Cart is empty'); return;
   }
@@ -1740,3 +1743,398 @@ function clearLocalStorage(){
 
 // ── BOOT ──
 boot();
+// ═══════════════════════════════════════════════════════
+//  REPORTS & ANALYTICS
+// ═══════════════════════════════════════════════════════
+
+let reportPeriod = 'today';
+let chartRevenue = null, chartDonut = null, chartBest = null;
+
+// ── Date helpers ──
+function periodDates(period) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === 'today') {
+    return { from: today, to: new Date(today.getTime() + 86400000 - 1) };
+  }
+  if (period === 'week') {
+    const mon = new Date(today); mon.setDate(today.getDate() - today.getDay() + 1);
+    return { from: mon, to: new Date(today.getTime() + 86400000 - 1) };
+  }
+  if (period === 'month') {
+    return { from: new Date(now.getFullYear(), now.getMonth(), 1),
+             to:   new Date(today.getTime() + 86400000 - 1) };
+  }
+  if (period === 'custom') {
+    const f = document.getElementById('reportFrom').value;
+    const t = document.getElementById('reportTo').value;
+    if (!f || !t) return periodDates('today');
+    return { from: new Date(f), to: new Date(new Date(t).getTime() + 86400000 - 1) };
+  }
+  return periodDates('today');
+}
+
+function setReportPeriod(p) {
+  reportPeriod = p;
+  document.querySelectorAll('.report-period-btn').forEach((b,i) => {
+    const labels = ['today','week','month','custom'];
+    b.classList.toggle('active', labels[i] === p);
+  });
+  document.getElementById('reportCustomRange').style.display = p === 'custom' ? 'flex' : 'none';
+  if (p !== 'custom') renderReports();
+}
+
+// ── Filter transactions to period, exclude failed/voided ──
+function txnsInPeriod(from, to) {
+  return transactions.filter(t => {
+    if (t.status === 'failed' || t.status === 'voided' || t.status === 'pending') return false;
+    const d = new Date(t.date);
+    return d >= from && d <= to;
+  });
+}
+
+// ── Main render orchestrator ──
+function renderReports() {
+  const { from, to } = periodDates(reportPeriod);
+  const txns = txnsInPeriod(from, to);
+  renderKPIs(txns, from, to);
+  renderRevenueTrend(txns, from, to);
+  renderCategoryDonut(txns);
+  renderHeatmap(txns);
+  renderBestSellers();
+  renderDeadStock();
+  renderCashierLeaderboard(txns);
+}
+
+// ── KPI cards ──
+function renderKPIs(txns, from, to) {
+  const cur = storeConfig.currency || 'KES';
+  const revenue   = txns.reduce((s,t) => s + t.total, 0);
+  const units     = txns.reduce((s,t) => s + t.items.reduce((a,i) => a+i.qty, 0), 0);
+  const avgBasket = txns.length ? Math.round(revenue / txns.length) : 0;
+  const discounts = txns.reduce((s,t) => s + (t.discount||0), 0);
+  const topCashier = (() => {
+    const map = {};
+    txns.forEach(t => { map[t.cashier] = (map[t.cashier]||0) + t.total; });
+    const top = Object.entries(map).sort((a,b)=>b[1]-a[1])[0];
+    return top ? top[0] : '—';
+  })();
+  const returns   = txns.filter(t => t.returns && t.returns.length).length;
+
+  const kpis = [
+    { icon:'💰', label:'Revenue',      val: cur+' '+revenue.toLocaleString(),    sub: txns.length+' transactions' },
+    { icon:'📦', label:'Units Sold',   val: units.toLocaleString(),              sub: 'items across all sales' },
+    { icon:'🛒', label:'Avg Basket',   val: cur+' '+avgBasket.toLocaleString(),  sub: 'per transaction' },
+    { icon:'🏷', label:'Discounts',    val: cur+' '+discounts.toLocaleString(),  sub: 'total given' },
+    { icon:'👑', label:'Top Cashier',  val: topCashier,                          sub: 'by revenue' },
+    { icon:'↩', label:'Returns',       val: returns.toString(),                  sub: 'transactions' },
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+// ── Revenue trend line chart ──
+function renderRevenueTrend(txns, from, to) {
+  const canvas = document.getElementById('chartRevenueTrend');
+  if (!canvas) return;
+  // Build daily buckets between from and to
+  const days = [];
+  const cur = new Date(from);
+  while (cur <= to) {
+    days.push(new Date(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  const labels = days.map(d => d.toLocaleDateString('en-KE', {day:'numeric',month:'short'}));
+  const data   = days.map(d => {
+    const next = new Date(d.getTime() + 86400000);
+    return txns.filter(t => {
+      const td = new Date(t.date);
+      return td >= d && td < next;
+    }).reduce((s,t) => s + t.total, 0);
+  });
+
+  if (chartRevenue) chartRevenue.destroy();
+  chartRevenue = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Revenue',
+        data,
+        borderColor: '#c9a84c',
+        backgroundColor: 'rgba(201,168,76,0.10)',
+        borderWidth: 2,
+        pointRadius: data.length <= 7 ? 4 : 2,
+        pointBackgroundColor: '#c9a84c',
+        fill: true,
+        tension: 0.35,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => (storeConfig.currency||'KES')+' '+ctx.parsed.y.toLocaleString() } } },
+      scales: {
+        x: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'#888', font:{size:10} } },
+        y: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'#888', font:{size:10},
+            callback: v => (storeConfig.currency||'KES')+' '+v.toLocaleString() } }
+      }
+    }
+  });
+}
+
+// ── Category donut chart ──
+function renderCategoryDonut(txns) {
+  const canvas = document.getElementById('chartCategoryDonut');
+  if (!canvas) return;
+  const map = {};
+  txns.forEach(t => t.items.forEach(i => {
+    const p = products.find(x => x.id === i.id);
+    const cat = p ? (categories.find(c=>c.id===p.category)?.label || p.category || 'Other') : 'Other';
+    map[cat] = (map[cat]||0) + i.price * i.qty;
+  }));
+  const entries = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0, 7);
+  const palette = ['#c9a84c','#a07030','#6d9e6d','#5b8ab5','#a06080','#7a6fa0','#888'];
+
+  if (chartDonut) chartDonut.destroy();
+  chartDonut = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: entries.map(e=>e[0]),
+      datasets: [{ data: entries.map(e=>e[1]), backgroundColor: palette, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#aaa', font:{size:10}, boxWidth:10 } },
+        tooltip: { callbacks: { label: ctx => ctx.label+': '+(storeConfig.currency||'KES')+' '+ctx.parsed.toLocaleString() } }
+      }
+    }
+  });
+}
+
+// ── Hourly heatmap (24 hours × 7 days-of-week) ──
+function renderHeatmap(txns) {
+  const wrap = document.getElementById('heatmapWrap');
+  if (!wrap) return;
+  const grid = Array.from({length:7}, () => new Array(24).fill(0));
+  txns.forEach(t => {
+    const d = new Date(t.date);
+    grid[d.getDay()][d.getHours()] += t.total;
+  });
+  const max = Math.max(1, ...grid.flat());
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '<div class="heatmap-grid">';
+  // Hour labels
+  html += '<div class="heatmap-corner"></div>';
+  for (let h=0;h<24;h++) html += `<div class="heatmap-hlabel">${h}</div>`;
+  // Rows
+  grid.forEach((row, di) => {
+    html += `<div class="heatmap-dlabel">${days[di]}</div>`;
+    row.forEach((val, hi) => {
+      const intensity = Math.round((val/max)*100);
+      const bg = val === 0 ? 'var(--card)' : `rgba(201,168,76,${(val/max*0.85+0.1).toFixed(2)})`;
+      const cur = storeConfig.currency||'KES';
+      html += `<div class="heatmap-cell" style="background:${bg}" title="${days[di]} ${hi}:00 — ${cur} ${val.toLocaleString()}"></div>`;
+    });
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+// ── Best sellers bar chart ──
+function renderBestSellers() {
+  const canvas = document.getElementById('chartBestSellers');
+  if (!canvas) return;
+  const map = {};
+  transactions.filter(t=>t.status!=='voided'&&t.status!=='failed').forEach(t =>
+    t.items.forEach(i => {
+      if (!map[i.name]) map[i.name] = { units:0, revenue:0 };
+      map[i.name].units   += i.qty;
+      map[i.name].revenue += i.price * i.qty;
+    }));
+  const top = Object.entries(map).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,8);
+  if (chartBest) chartBest.destroy();
+  chartBest = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: top.map(e=>e[0].length>16?e[0].slice(0,14)+'…':e[0]),
+      datasets: [{
+        label: 'Revenue',
+        data: top.map(e=>e[1].revenue),
+        backgroundColor: 'rgba(201,168,76,0.75)',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx=>(storeConfig.currency||'KES')+' '+ctx.parsed.x.toLocaleString() } } },
+      scales: {
+        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#888',font:{size:10},
+            callback:v=>(storeConfig.currency||'KES')+' '+v.toLocaleString()} },
+        y:{ grid:{display:false}, ticks:{color:'#ccc',font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ── Dead stock ──
+function renderDeadStock() {
+  const wrap = document.getElementById('deadStockList');
+  if (!wrap) return;
+  const cutoff = new Date(Date.now() - 30*24*60*60*1000);
+  const soldRecently = new Set();
+  transactions.filter(t=>t.status!=='voided'&&t.status!=='failed').forEach(t => {
+    if (new Date(t.date) >= cutoff) t.items.forEach(i => soldRecently.add(i.id));
+  });
+  const dead = products.filter(p => !soldRecently.has(p.id) && p.stock > 0);
+  const cur  = storeConfig.currency||'KES';
+  if (!dead.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px;letter-spacing:0.06em">🎉 No dead stock — everything has sold recently</div>';
+    return;
+  }
+  wrap.innerHTML = dead.slice(0,12).map(p => {
+    const cat = categories.find(c=>c.id===p.category)?.label||'';
+    return `<div class="dead-stock-row">
+      <span class="dead-stock-emoji">${p.emoji||'📦'}</span>
+      <div class="dead-stock-info">
+        <div class="dead-stock-name">${p.name}</div>
+        <div class="dead-stock-meta">${cat} · Stock: ${p.stock}</div>
+      </div>
+      <span class="dead-stock-price">${cur} ${p.price.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Cashier leaderboard ──
+function renderCashierLeaderboard(txns) {
+  const wrap = document.getElementById('cashierLeaderboard');
+  if (!wrap) return;
+  const cur = storeConfig.currency||'KES';
+  const map = {};
+  txns.forEach(t => {
+    const name = t.cashier||'Unknown';
+    if (!map[name]) map[name] = {sales:0,revenue:0,discounts:0,returns:0};
+    map[name].sales++;
+    map[name].revenue   += t.total;
+    map[name].discounts += (t.discount||0);
+    if (t.returns && t.returns.length) map[name].returns++;
+  });
+  const rows = Object.entries(map).sort((a,b)=>b[1].revenue-a[1].revenue);
+  if (!rows.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">No transactions in this period</div>';
+    return;
+  }
+  const maxRev = rows[0][1].revenue;
+  wrap.innerHTML = rows.map(([name,d],i) => `
+    <div class="leaderboard-row">
+      <div class="leaderboard-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+      <div class="leaderboard-name">${name}</div>
+      <div class="leaderboard-bar-wrap">
+        <div class="leaderboard-bar" style="width:${Math.round(d.revenue/maxRev*100)}%"></div>
+      </div>
+      <div class="leaderboard-stats">
+        <span>${cur} ${d.revenue.toLocaleString()}</span>
+        <span>${d.sales} sales</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── Export CSV ──
+function exportReportCSV() {
+  const { from, to } = periodDates(reportPeriod);
+  const txns = txnsInPeriod(from, to);
+  const cur  = storeConfig.currency||'KES';
+  const rows = [
+    ['Transaction ID','Date','Time','Customer','Cashier','Items','Subtotal','Discount','VAT','Total','Payment','Status'],
+    ...txns.map(t => [
+      t.id,
+      new Date(t.date).toLocaleDateString('en-KE'),
+      new Date(t.date).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}),
+      t.customer,
+      t.cashier,
+      t.items.map(i=>`${i.name} x${i.qty}`).join(' | '),
+      t.subtotal,
+      t.discount||0,
+      t.vat||0,
+      t.total,
+      t.payMethod,
+      t.status,
+    ])
+  ];
+  const csv  = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tinah-report-'+from.toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast('✓ CSV downloaded');
+}
+
+// ── Export PDF (print-ready report page) ──
+function exportReportPDF() {
+  const { from, to } = periodDates(reportPeriod);
+  const txns = txnsInPeriod(from, to);
+  const cur  = storeConfig.currency||'KES';
+  const revenue  = txns.reduce((s,t)=>s+t.total,0);
+  const units    = txns.reduce((s,t)=>s+t.items.reduce((a,i)=>a+i.qty,0),0);
+  const avgBasket= txns.length ? Math.round(revenue/txns.length) : 0;
+  const storeName= storeConfig.name||'TINAH COSMETICS';
+  const dateRange= from.toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})
+    + (reportPeriod!=='today' ? ' – '+to.toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'}) : '');
+
+  // Top cashiers
+  const cashierMap = {};
+  txns.forEach(t=>{ cashierMap[t.cashier]=(cashierMap[t.cashier]||0)+t.total; });
+  const cashierRows = Object.entries(cashierMap).sort((a,b)=>b[1]-a[1])
+    .map(([n,v])=>`<tr><td>${n}</td><td style="text-align:right">${cur} ${v.toLocaleString()}</td></tr>`).join('');
+
+  // Item breakdown
+  const itemMap = {};
+  txns.forEach(t=>t.items.forEach(i=>{
+    if(!itemMap[i.name]) itemMap[i.name]={units:0,revenue:0};
+    itemMap[i.name].units+=i.qty; itemMap[i.name].revenue+=i.price*i.qty;
+  }));
+  const itemRows = Object.entries(itemMap).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,15)
+    .map(([n,d])=>`<tr><td>${n}</td><td style="text-align:right">${d.units}</td><td style="text-align:right">${cur} ${d.revenue.toLocaleString()}</td></tr>`).join('');
+
+  const win = window.open('','_blank','width=800,height=900');
+  win.document.write(`<!DOCTYPE html><html><head><title>${storeName} — Report</title>
+  <style>
+    body{font-family:'Helvetica Neue',sans-serif;padding:32px 40px;color:#1a1a1a;font-size:13px}
+    h1{font-size:22px;letter-spacing:0.2em;color:#8a6d2f;margin:0}
+    .sub{font-size:11px;color:#888;letter-spacing:0.1em;margin-top:4px;margin-bottom:24px}
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+    .kpi{background:#faf9f6;border:1px solid #e8e0cc;border-radius:6px;padding:12px 16px}
+    .kpi-l{font-size:10px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:4px}
+    .kpi-v{font-size:18px;font-weight:700;color:#8a6d2f}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px}
+    th{background:#f5f0e8;text-align:left;padding:7px 10px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7a6030}
+    td{padding:6px 10px;border-bottom:1px solid #f0ece0;font-size:12px}
+    h2{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#555;margin:20px 0 8px}
+    @media print{body{padding:16px}}
+  </style></head><body>
+  <h1>${storeName}</h1>
+  <div class="sub">SALES REPORT &nbsp;·&nbsp; ${dateRange}</div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Revenue</div><div class="kpi-v">${cur} ${revenue.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-l">Transactions</div><div class="kpi-v">${txns.length}</div></div>
+    <div class="kpi"><div class="kpi-l">Units Sold</div><div class="kpi-v">${units}</div></div>
+    <div class="kpi"><div class="kpi-l">Avg Basket</div><div class="kpi-v">${cur} ${avgBasket.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-l">Discounts Given</div><div class="kpi-v">${cur} ${txns.reduce((s,t)=>s+(t.discount||0),0).toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-l">Returns</div><div class="kpi-v">${txns.filter(t=>t.returns&&t.returns.length).length}</div></div>
+  </div>
+  <h2>Cashier Performance</h2>
+  <table><tr><th>Cashier</th><th style="text-align:right">Revenue</th></tr>${cashierRows}</table>
+  <h2>Top Products</h2>
+  <table><tr><th>Product</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr>${itemRows}</table>
+  <script>window.onload=()=>window.print()<\/script></body></html>`);
+  win.document.close();
+}
