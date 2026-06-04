@@ -65,9 +65,9 @@
   <div class="report-toolbar">
     <div class="report-toolbar-left">
       <div class="report-period-btns">
-        <button class="report-period-btn active" onclick="setReportPeriod('today')">Today</button>
+        <button class="report-period-btn" onclick="setReportPeriod('today')">Today</button>
         <button class="report-period-btn" onclick="setReportPeriod('week')">This Week</button>
-        <button class="report-period-btn" onclick="setReportPeriod('month')">This Month</button>
+        <button class="report-period-btn active" onclick="setReportPeriod('month')">This Month</button>
         <button class="report-period-btn" onclick="setReportPeriod('custom')">Custom</button>
       </div>
       <div class="report-custom-range" id="reportCustomRange" style="display:none">
@@ -118,10 +118,41 @@
     </div>
 
     <!-- Cashier leaderboard -->
-    <div class="report-card" style="margin:0 20px 24px">
+    <div class="report-card" style="margin:0 20px 16px">
       <div class="report-card-title">Cashier Performance</div>
       <div id="cashierLeaderboard" class="cashier-leaderboard"></div>
     </div>
+
+    <!-- Sales Forecast -->
+    <div class="report-card" style="margin:0 20px 16px" id="forecastCard">
+      <div class="report-card-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📈 Sales Forecast <span class="report-card-sub">linear regression · next 7 days</span></span>
+        <button class="btn-outline" style="font-size:10px;padding:4px 12px" onclick="renderForecast()">Recalculate</button>
+      </div>
+      <div id="forecastContent">
+        <div class="forecast-notice" id="forecastNotice"></div>
+        <canvas id="chartForecast" height="80" style="display:none"></canvas>
+        <div class="forecast-table" id="forecastTable"></div>
+      </div>
+    </div>
+
+    <!-- AI Insights -->
+    <div class="report-card" style="margin:0 20px 24px" id="aiInsightsCard">
+      <div class="report-card-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <span>🤖 AI Insights <span class="report-card-sub">seasonal patterns &amp; recommendations</span></span>
+        <button class="btn-gold" style="font-size:10px;padding:5px 14px;white-space:nowrap" onclick="runAiInsights()">✨ Analyse with Claude</button>
+      </div>
+      <div id="aiInsightsContent">
+        <div class="ai-idle-state">
+          <div style="font-size:28px;margin-bottom:8px">🤖</div>
+          <div style="font-size:12px;color:var(--text-dim);letter-spacing:0.04em;line-height:1.7">
+            Click <strong>Analyse with Claude</strong> to get plain-English insights on your sales patterns, seasonal trends, and reorder suggestions.<br>
+            <span style="font-size:10px;color:var(--text-faint)">Needs at least 2 weeks of transaction data for meaningful results.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 

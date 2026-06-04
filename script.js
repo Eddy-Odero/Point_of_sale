@@ -1757,7 +1757,7 @@ boot();
 //  REPORTS & ANALYTICS
 // ═══════════════════════════════════════════════════════
 
-let reportPeriod = 'today';
+let reportPeriod = 'month';
 let chartRevenue = null, chartDonut = null, chartBest = null;
 
 // ── Date helpers ──
@@ -1814,6 +1814,8 @@ function renderReports() {
   renderBestSellers();
   renderDeadStock();
   renderCashierLeaderboard(txns);
+  // Forecast uses all transactions, not period-filtered
+  if (typeof renderForecast === 'function') renderForecast();
 }
 
 // ── KPI cards ──
@@ -1839,6 +1841,14 @@ function renderKPIs(txns, from, to) {
     { icon:'👑', label:'Top Cashier',  val: topCashier,                          sub: 'by revenue' },
     { icon:'↩', label:'Returns',       val: returns.toString(),                  sub: 'transactions' },
   ];
+  if (!txns.length) {
+    document.getElementById('kpiRow').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-faint);font-size:12px;letter-spacing:0.08em">
+        No completed transactions in this period.<br>
+        <span style="font-size:11px">Try switching to <button onclick="setReportPeriod('month')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:11px;text-decoration:underline">This Month</button> or make a test sale.</span>
+      </div>`;
+    return;
+  }
   document.getElementById('kpiRow').innerHTML = kpis.map(k => `
     <div class="kpi-card">
       <div class="kpi-icon">${k.icon}</div>
@@ -1851,7 +1861,7 @@ function renderKPIs(txns, from, to) {
 // ── Revenue trend line chart ──
 function renderRevenueTrend(txns, from, to) {
   const canvas = document.getElementById('chartRevenueTrend');
-  if (!canvas) return;
+  if (!canvas || typeof Chart === 'undefined') return;
   // Build daily buckets between from and to
   const days = [];
   const cur = new Date(from);
@@ -1901,7 +1911,7 @@ function renderRevenueTrend(txns, from, to) {
 // ── Category donut chart ──
 function renderCategoryDonut(txns) {
   const canvas = document.getElementById('chartCategoryDonut');
-  if (!canvas) return;
+  if (!canvas || typeof Chart === 'undefined') return;
   const map = {};
   txns.forEach(t => t.items.forEach(i => {
     const p = products.find(x => x.id === i.id);
@@ -1960,7 +1970,7 @@ function renderHeatmap(txns) {
 // ── Best sellers bar chart ──
 function renderBestSellers() {
   const canvas = document.getElementById('chartBestSellers');
-  if (!canvas) return;
+  if (!canvas || typeof Chart === 'undefined') return;
   const map = {};
   transactions.filter(t=>t.status!=='voided'&&t.status!=='failed').forEach(t =>
     t.items.forEach(i => {
@@ -2722,3 +2732,299 @@ function cataloguePrintCSS(cols) {
     }
   `;
 }
+
+
+// ═══════════════════════════════════════════════════════
+//  SALES FORECAST — linear regression, browser-only
+// ═══════════════════════════════════════════════════════
+
+let chartForecast = null;
+
+function renderForecast() {
+  const notice  = document.getElementById('forecastNotice');
+  if (!notice) return; // not rendered yet
+  const canvas  = document.getElementById('chartForecast');
+  const table   = document.getElementById('forecastTable');
+  const cur     = storeConfig.currency || 'KES';
+
+  // Need completed, non-voided transactions
+  const valid = transactions.filter(t =>
+    t.status !== 'voided' && t.status !== 'failed' && t.status !== 'pending'
+  );
+
+  // Build daily revenue map
+  const dayMap = {};
+  valid.forEach(t => {
+    const d = new Date(t.date).toISOString().slice(0,10);
+    dayMap[d] = (dayMap[d] || 0) + t.total;
+  });
+
+  const days = Object.keys(dayMap).sort();
+
+  if (days.length < 7) {
+    notice.innerHTML = `<div class="forecast-notice-warn">⚠ Need at least 7 days of sales data for a forecast. You have <strong>${days.length}</strong> day${days.length!==1?'s':''} so far. Keep selling!</div>`;
+    canvas.style.display = 'none';
+    table.innerHTML = '';
+    return;
+  }
+
+  notice.innerHTML = days.length < 28
+    ? `<div class="forecast-notice-info">ℹ ${days.length} days of data — forecast accuracy improves with more history (28+ days ideal).</div>`
+    : '';
+
+  // Linear regression on the last 60 days (or all if fewer)
+  const recent = days.slice(-60);
+  const xs = recent.map((_, i) => i);
+  const ys = recent.map(d => dayMap[d]);
+  const n  = xs.length;
+  const sumX  = xs.reduce((a,b)=>a+b,0);
+  const sumY  = ys.reduce((a,b)=>a+b,0);
+  const sumXY = xs.reduce((a,b,i)=>a+b*ys[i],0);
+  const sumX2 = xs.reduce((a,b)=>a+b*b,0);
+  const slope = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
+  const intercept = (sumY - slope*sumX) / n;
+
+  // Residual std dev for confidence range
+  const residuals = ys.map((y,i) => y - (intercept + slope*i));
+  const stdDev    = Math.sqrt(residuals.reduce((a,r)=>a+r*r,0)/n);
+  const ci        = stdDev * 1.96; // 95% confidence interval
+
+  // Forecast next 7 days
+  const forecasted = [];
+  for (let i=1; i<=7; i++) {
+    const x   = n + i - 1;
+    const pred = Math.max(0, Math.round(intercept + slope*x));
+    const lo  = Math.max(0, Math.round(pred - ci));
+    const hi  = Math.round(pred + ci);
+    const d   = new Date();
+    d.setDate(d.getDate() + i);
+    forecasted.push({
+      date: d.toISOString().slice(0,10),
+      label: d.toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short'}),
+      pred, lo, hi
+    });
+  }
+
+  // Weekly totals
+  const weekPred = forecasted.reduce((s,f)=>s+f.pred, 0);
+  const weekLo   = forecasted.reduce((s,f)=>s+f.lo,   0);
+  const weekHi   = forecasted.reduce((s,f)=>s+f.hi,   0);
+
+  // Chart: last 14 actual days + 7 forecast
+  const histDays  = days.slice(-14);
+  const histRevs  = histDays.map(d => dayMap[d]);
+  const chartLabels = [
+    ...histDays.map(d => new Date(d).toLocaleDateString('en-KE',{day:'numeric',month:'short'})),
+    ...forecasted.map(f => f.label)
+  ];
+  const actualData   = [...histRevs, ...Array(7).fill(null)];
+  const forecastData = [...Array(histDays.length).fill(null), ...forecasted.map(f=>f.pred)];
+  const loData       = [...Array(histDays.length).fill(null), ...forecasted.map(f=>f.lo)];
+  const hiData       = [...Array(histDays.length).fill(null), ...forecasted.map(f=>f.hi)];
+
+  canvas.style.display = 'block';
+  if (chartForecast) chartForecast.destroy();
+  chartForecast = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'Actual', data: actualData,
+          borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.08)',
+          borderWidth: 2, pointRadius: 3, fill: true, tension: 0.3,
+        },
+        {
+          label: 'Forecast', data: forecastData,
+          borderColor: '#5b8ab5', backgroundColor: 'rgba(91,138,181,0.08)',
+          borderWidth: 2, borderDash: [5,4], pointRadius: 3, fill: true, tension: 0.3,
+        },
+        {
+          label: 'Upper bound', data: hiData,
+          borderColor: 'rgba(91,138,181,0.25)', borderWidth: 1,
+          borderDash: [2,4], pointRadius: 0, fill: false,
+        },
+        {
+          label: 'Lower bound', data: loData,
+          borderColor: 'rgba(91,138,181,0.25)', borderWidth: 1,
+          borderDash: [2,4], pointRadius: 0, fill: '-1',
+          backgroundColor: 'rgba(91,138,181,0.06)',
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels:{ color:'#aaa', font:{size:10}, boxWidth:12 } },
+        tooltip: { callbacks:{
+          label: ctx => ctx.dataset.label+': '+cur+' '+Math.round(ctx.parsed.y||0).toLocaleString()
+        }}
+      },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#888',font:{size:10}} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#888',font:{size:10},
+          callback: v => cur+' '+v.toLocaleString()} }
+      }
+    }
+  });
+
+  // Forecast table
+  const trendIcon = slope > 0 ? '↑' : slope < 0 ? '↓' : '→';
+  const trendColour = slope > 0 ? 'var(--success)' : slope < 0 ? 'var(--danger)' : 'var(--text-faint)';
+  table.innerHTML = `
+    <div class="forecast-summary">
+      <div class="forecast-summary-stat">
+        <div class="forecast-summary-label">Next 7 Days (predicted)</div>
+        <div class="forecast-summary-val">${cur} ${weekPred.toLocaleString()}</div>
+        <div class="forecast-summary-range">${cur} ${weekLo.toLocaleString()} – ${cur} ${weekHi.toLocaleString()} (95% CI)</div>
+      </div>
+      <div class="forecast-summary-stat">
+        <div class="forecast-summary-label">Daily trend</div>
+        <div class="forecast-summary-val" style="color:${trendColour}">${trendIcon} ${cur} ${Math.abs(Math.round(slope)).toLocaleString()}/day</div>
+        <div class="forecast-summary-range">${slope > 50 ? 'Revenue growing' : slope < -50 ? 'Revenue declining' : 'Relatively stable'}</div>
+      </div>
+      <div class="forecast-summary-stat">
+        <div class="forecast-summary-label">Data quality</div>
+        <div class="forecast-summary-val">${days.length} days</div>
+        <div class="forecast-summary-range">${days.length>=28?'Good':'Add more data for accuracy'}</div>
+      </div>
+    </div>
+    <table class="forecast-breakdown-table">
+      <thead><tr><th>Day</th><th>Predicted</th><th>Low</th><th>High</th></tr></thead>
+      <tbody>${forecasted.map(f=>`
+        <tr>
+          <td>${f.label}</td>
+          <td style="font-weight:600;color:var(--gold)">${cur} ${f.pred.toLocaleString()}</td>
+          <td style="color:var(--text-faint)">${cur} ${f.lo.toLocaleString()}</td>
+          <td style="color:var(--text-faint)">${cur} ${f.hi.toLocaleString()}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  AI INSIGHTS — Claude API narrates patterns
+// ═══════════════════════════════════════════════════════
+
+async function runAiInsights() {
+  const wrap = document.getElementById('aiInsightsContent');
+  wrap.innerHTML = `<div class="ai-thinking"><div class="ai-thinking-dots"><span></span><span></span><span></span></div><div class="ai-thinking-label">Analysing your sales data…</div></div>`;
+
+  const valid = transactions.filter(t =>
+    t.status !== 'voided' && t.status !== 'failed' && t.status !== 'pending'
+  );
+
+  if (valid.length < 10) {
+    wrap.innerHTML = `<div class="ai-idle-state"><div style="font-size:24px;margin-bottom:8px">📊</div><div style="font-size:12px;color:var(--text-dim);line-height:1.7">Need at least <strong>10 transactions</strong> to generate meaningful insights. You have ${valid.length} so far.</div></div>`;
+    return;
+  }
+
+  // Build compact summary to send to Claude
+  const cur        = storeConfig.currency || 'KES';
+  const storeName  = storeConfig.name || 'TINAH COSMETICS';
+  const dayMap     = {};
+  const catMap     = {};
+  const monthMap   = {};
+  const productMap = {};
+
+  valid.forEach(t => {
+    const d   = new Date(t.date);
+    const day = d.toISOString().slice(0,10);
+    const mon = d.toISOString().slice(0,7);
+    dayMap[day]   = (dayMap[day]  ||0) + t.total;
+    monthMap[mon] = (monthMap[mon]||0) + t.total;
+    t.items.forEach(i => {
+      const p   = products.find(x=>x.id===i.id);
+      const cat = p ? (categories.find(c=>c.id===p.category)?.label||'Other') : 'Other';
+      catMap[cat]       = (catMap[cat]||0)     + i.price*i.qty;
+      productMap[i.name]= (productMap[i.name]||0) + i.price*i.qty;
+    });
+  });
+
+  const topProducts = Object.entries(productMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topCats     = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const monthTrends = Object.entries(monthMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  const totalRev    = valid.reduce((s,t)=>s+t.total,0);
+  const avgBasket   = Math.round(totalRev/valid.length);
+
+  const prompt = `You are a retail business analyst for ${storeName}, a cosmetics/beauty shop in Kenya.
+
+Here is their sales data summary:
+- Total transactions: ${valid.length}
+- Total revenue: ${cur} ${totalRev.toLocaleString()}
+- Average basket: ${cur} ${avgBasket.toLocaleString()}
+- Date range: ${Object.keys(dayMap).sort()[0]} to ${Object.keys(dayMap).sort().pop()}
+
+Monthly revenue trend:
+${monthTrends.map(([m,v])=>`  ${m}: ${cur} ${v.toLocaleString()}`).join('\n')}
+
+Top categories by revenue:
+${topCats.map(([c,v])=>`  ${c}: ${cur} ${v.toLocaleString()}`).join('\n')}
+
+Top 10 products by revenue:
+${topProducts.map(([n,v])=>`  ${n}: ${cur} ${v.toLocaleString()}`).join('\n')}
+
+Please provide:
+1. **Key patterns** — what's growing, what's declining, any seasonal signals
+2. **Top opportunities** — 2-3 specific actions to increase revenue
+3. **Reorder suggestions** — which product categories to stock up on and when
+4. **One risk** — anything to watch out for
+
+Keep it concise, practical, and specific to a Kenyan cosmetics shop. Use bullet points. Mention specific product names and numbers from the data.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error?.message || 'API error '+res.status);
+    }
+
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||'').join('') || '';
+    const html = markdownToHTML(text);
+
+    wrap.innerHTML = `
+      <div class="ai-response">
+        <div class="ai-response-header">
+          <span class="ai-response-badge">✨ Claude Analysis</span>
+          <span style="font-size:10px;color:var(--text-faint)">${new Date().toLocaleString('en-KE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+        </div>
+        <div class="ai-response-body">${html}</div>
+        <div class="ai-response-footer">
+          Based on ${valid.length} transactions · <button class="ai-rerun-btn" onclick="runAiInsights()">↻ Refresh analysis</button>
+        </div>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `
+      <div class="ai-error">
+        <div style="font-size:20px;margin-bottom:8px">⚠️</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px"><strong>Could not reach Claude API</strong></div>
+        <div style="font-size:11px;color:var(--text-faint);line-height:1.6">${e.message}<br><br>This feature requires a network connection and the Claude API to be accessible from your browser. If you're on a LAN-only server, requests to api.anthropic.com may be blocked by your network.</div>
+        <button class="btn-outline" style="margin-top:12px;font-size:11px;padding:6px 14px" onclick="runAiInsights()">↻ Try again</button>
+      </div>`;
+  }
+}
+
+// Minimal markdown → HTML converter for AI response
+function markdownToHTML(md) {
+  return md
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^#{1,3}\s+(.+)$/gm, '<div class="ai-section-head">$1</div>')
+    .replace(/^[-•]\s+(.+)$/gm, '<div class="ai-bullet">$1</div>')
+    .replace(/^\d+\.\s+\*\*(.+?)\*\*(.*)$/gm, '<div class="ai-numbered-head"><strong>$1</strong>$2</div>')
+    .replace(/^\d+\.\s+(.+)$/gm, '<div class="ai-bullet">$1</div>')
+    .replace(/\n{2,}/g, '<br>')
+    .replace(/\n/g, '');
+}
+
+// renderForecast is called directly from renderReports below
