@@ -358,6 +358,71 @@ button{cursor:pointer;font-family:'Montserrat',sans-serif}
 /* when in filter mode, shop section sits right below the nav */
 body.filter-mode #shop{padding-top:96px}
 body.filter-mode #shop .s-header{margin-bottom:32px}
+
+/* ── VARIANT SELECTORS ── */
+.v-section{margin-top:16px}
+.v-label{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.v-label span{color:var(--gold);font-weight:700}
+.size-grid{display:flex;flex-wrap:wrap;gap:7px}
+.size-btn{
+  min-width:42px;height:36px;padding:0 10px;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text-dim);font-family:'Montserrat',sans-serif;
+  font-size:11px;font-weight:500;letter-spacing:.06em;
+  cursor:pointer;transition:all .18s;position:relative;
+}
+.size-btn:hover:not(.unavail){border-color:var(--border-gold);color:var(--gold-light)}
+.size-btn.selected{
+  border-color:var(--gold);color:var(--gold);
+  background:var(--gold-dim);
+}
+.size-btn.unavail{
+  opacity:.35;cursor:not-allowed;
+  background:repeating-linear-gradient(135deg,var(--card) 0px,var(--card) 5px,var(--border) 5px,var(--border) 6px);
+}
+.colour-grid{display:flex;flex-wrap:wrap;gap:8px}
+.colour-btn{
+  position:relative;width:30px;height:30px;
+  border-radius:50%;border:2px solid transparent;
+  cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;justify-content:center;
+}
+.colour-btn:hover{transform:scale(1.12)}
+.colour-btn.selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-dim)}
+.colour-btn.selected::after{
+  content:'✓';
+  position:absolute;font-size:12px;font-weight:700;
+  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);
+}
+.colour-swatch{
+  width:100%;height:100%;border-radius:50%;
+  border:1px solid rgba(255,255,255,.12);
+}
+.colour-name-display{
+  font-size:11px;color:var(--text-dim);letter-spacing:.06em;
+  margin-top:6px;min-height:16px;transition:color .15s;
+}
+.v-error{
+  font-size:11px;color:var(--danger);letter-spacing:.06em;
+  margin-top:8px;display:none;
+}
+.v-error.show{display:block}
+/* cart variant tag */
+.ci-variant{
+  font-size:10px;color:var(--text-faint);letter-spacing:.06em;
+  margin-top:2px;
+}
+/* drawer footer upgrade — two-button layout */
+.drawer-foot-row{display:flex;gap:8px}
+.d-wish-btn{
+  width:44px;height:44px;flex-shrink:0;
+  background:none;border:1px solid var(--border-gold);
+  color:var(--gold);font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.d-wish-btn:hover{background:var(--gold-dim)}
+.d-wish-btn.on{background:var(--gold-dim);color:var(--danger);border-color:var(--danger)}
 </style>
 </head>
 <body>
@@ -406,7 +471,7 @@ body.filter-mode #shop .s-header{margin-bottom:32px}
   <div class="hero-line" style="left:50%"></div>
   <div class="hero-line" style="left:82%"></div>
   <div class="hero-content">
-    <div class="hero-eyebrow">Kisumu &bull; Luxury Fashion &amp; Beauty</div>
+    <div class="hero-eyebrow">Nairobi &bull; Luxury Fashion &amp; Beauty</div>
     <h1 class="hero-title">Wear what<br><em>you love.</em></h1>
     <p class="hero-sub">Premium clothing, cosmetics &amp; shoes curated for the modern Kenyan woman. Delivered to your door.</p>
     <div class="hero-ctas">
@@ -525,7 +590,7 @@ body.filter-mode #shop .s-header{margin-bottom:32px}
       </div>
     </div>
     <div class="footer-bottom">
-      <div class="f-copy">&copy; 2026 TINAH COSMETICS. All rights reserved. Kisumu, Kenya.</div>
+      <div class="f-copy">&copy; 2025 TINAH COSMETICS. All rights reserved. Nairobi, Kenya.</div>
       <div class="pay-icons">
         <div class="pay-ic">M-PESA</div>
         <div class="pay-ic">VISA</div>
@@ -546,7 +611,10 @@ body.filter-mode #shop .s-header{margin-bottom:32px}
   <div id="drawerImg"></div>
   <div class="drawer-body" id="drawerBody"></div>
   <div class="drawer-foot">
-    <button class="d-add-btn" id="dAddBtn">Add to Bag &rarr;</button>
+    <div class="drawer-foot-row">
+      <button class="d-wish-btn" id="dWishBtn" title="Save to wishlist">&#x2661;</button>
+      <button class="d-add-btn" id="dAddBtn" style="flex:1">Add to Bag &rarr;</button>
+    </div>
   </div>
 </div>
 
@@ -1390,65 +1458,245 @@ function toggleWish(btn){
   toast(btn.classList.contains('on') ? '\u2665 Saved to wishlist' : 'Removed from wishlist');
 }
 
+// ═══════════ VARIANT DATA ═══════════
+// Sizes and colours per category. Availability is per-size stock simulation.
+const VARIANTS = {
+  clothing: {
+    sizes: [
+      {label:'XS', avail:true},
+      {label:'S',  avail:true},
+      {label:'M',  avail:true},
+      {label:'L',  avail:true},
+      {label:'XL', avail:true},
+      {label:'XXL',avail:false},
+    ],
+    colours: [
+      {name:'Midnight Black', hex:'#1a1a1a'},
+      {name:'Ivory White',    hex:'#f5f0e8'},
+      {name:'Gold Sand',      hex:'#c9a84c'},
+      {name:'Dusty Rose',     hex:'#d4927c'},
+      {name:'Forest Green',   hex:'#2d5a3d'},
+      {name:'Navy Blue',      hex:'#1c2e4a'},
+    ]
+  },
+  shoes: {
+    sizes: [
+      {label:'36', avail:true},
+      {label:'37', avail:true},
+      {label:'38', avail:true},
+      {label:'39', avail:true},
+      {label:'40', avail:true},
+      {label:'41', avail:false},
+      {label:'42', avail:false},
+    ],
+    colours: [
+      {name:'Black',      hex:'#1a1a1a'},
+      {name:'Nude',       hex:'#c9a07a'},
+      {name:'White',      hex:'#f0ebe0'},
+      {name:'Gold',       hex:'#c9a84c'},
+      {name:'Brown',      hex:'#7a5230'},
+    ]
+  },
+  cosmetics: {
+    sizes: [
+      {label:'30ml',  avail:true},
+      {label:'50ml',  avail:true},
+      {label:'100ml', avail:true},
+      {label:'200ml', avail:false},
+    ],
+    colours: [
+      {name:'Original',   hex:'#c9a84c'},
+      {name:'Rose Gold',  hex:'#e8a090'},
+      {name:'Pearl',      hex:'#f0ebe0'},
+      {name:'Noir',       hex:'#2a2020'},
+    ]
+  }
+};
+
+// Active drawer selections
+let drawerSelectedSize   = null;
+let drawerSelectedColour = null;
+let drawerCurrentProduct = null;
+let drawerWishlisted     = false;
+
 // ═══════════ PRODUCT DRAWER ═══════════
 function openDrawer(id){
   const p   = PRODS.find(x => x.id===id);
   if(!p) return;
-  const cat = CATS.find(c => c.id===p.category);
-  const src = p.image_data || p.image_url;
+  drawerCurrentProduct = p;
+  drawerSelectedSize   = null;
+  drawerSelectedColour = null;
+  drawerWishlisted     = false;
 
+  const cat    = CATS.find(c => c.id===p.category);
+  const src    = p.image_data || p.image_url;
+  const vars   = VARIANTS[p.category] || VARIANTS.cosmetics;
+
+  // Image
   document.getElementById('drawerImg').innerHTML = src
     ? `<img class="drawer-img" src="${src}" alt="${p.name}" onerror="this.outerHTML='<div class=\\'drawer-img-fb\\'>${p.emoji||'🏷'}</div>'">`
     : `<div class="drawer-img-fb">${p.emoji||'🏷'}</div>`;
 
+  // Size label word
+  const sizeWord = p.category==='shoes' ? 'Size (EU)' : p.category==='cosmetics' ? 'Size / Volume' : 'Size';
+
+  // Build size buttons
+  const sizeBtns = vars.sizes.map(s =>
+    `<button class="size-btn ${s.avail?'':'unavail'}"
+      onclick="selectSize('${s.label}',${s.avail})"
+      title="${s.avail?'':'Out of stock'}">${s.label}</button>`
+  ).join('');
+
+  // Build colour swatches
+  const colourBtns = vars.colours.map(c =>
+    `<button class="colour-btn" onclick="selectColour('${c.name}','${c.hex}')" title="${c.name}">
+      <div class="colour-swatch" style="background:${c.hex}"></div>
+    </button>`
+  ).join('');
+
+  // Body HTML
   document.getElementById('drawerBody').innerHTML = `
-    <div class="d-cat">${cat?.label||''} \u2022 ${p.subcategory}</div>
+    <div class="d-cat">${cat?.label||''} &bull; ${p.subcategory}</div>
     <div class="d-name">${p.name}</div>
-    <div class="d-price">${CUR} ${p.price.toLocaleString()}</div>
+    <div class="d-price" id="dPrice">${CUR} ${p.price.toLocaleString()}</div>
     <div class="d-div"></div>
-    <div class="d-desc">A premium piece from our curated ${cat?.label||''} collection. Crafted for quality and enduring style.</div>
+
+    <!-- COLOUR SELECTOR -->
+    <div class="v-section">
+      <div class="v-label">Colour <span id="selectedColourName"></span></div>
+      <div class="colour-grid" id="colourGrid">${colourBtns}</div>
+      <div class="colour-name-display" id="colourNameDisplay">Select a colour</div>
+    </div>
+
+    <!-- SIZE SELECTOR -->
+    <div class="v-section">
+      <div class="v-label">${sizeWord} <span id="selectedSizeName"></span></div>
+      <div class="size-grid" id="sizeGrid">${sizeBtns}</div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <div class="v-error" id="variantError">Please select a size and colour to continue</div>
+
+    <div class="d-div"></div>
+    <div class="d-desc">A premium piece from our curated ${cat?.label||''} collection. Crafted for quality and enduring style — designed to last.</div>
     <div class="d-stock">
       <div class="s-dot ${p.stock>3?'in':p.stock>0?'low':'out'}"></div>
       ${p.stock>10 ? 'In stock' : p.stock>0 ? `Only ${p.stock} left` : 'Out of stock'}
     </div>
     ${p.sku ? `<div style="font-size:10px;color:var(--text-faint);letter-spacing:.1em;margin-top:9px">SKU: ${p.sku}</div>` : ''}`;
 
-  const btn = document.getElementById('dAddBtn');
+  // Footer button state
+  const addBtn  = document.getElementById('dAddBtn');
+  const wishBtn = document.getElementById('dWishBtn');
+
   if(p.stock===0){
-    btn.disabled = true; btn.textContent = 'Out of Stock';
+    addBtn.disabled = true;
+    addBtn.textContent = 'Out of Stock';
   } else {
-    btn.disabled = false; btn.textContent = 'Add to Bag \u2192';
-    btn.onclick = () => {
-      addToCart(p.id);
-      btn.textContent = '\u2713 Added!';
-      setTimeout(() => { btn.textContent = 'Add to Bag \u2192'; }, 1500);
-    };
+    addBtn.disabled = false;
+    addBtn.textContent = 'Add to Bag \u2192';
+    addBtn.onclick = () => drawerAddToBag();
   }
+
+  // Wishlist button
+  wishBtn.textContent = '\u2661';
+  wishBtn.classList.remove('on');
+  wishBtn.onclick = () => {
+    drawerWishlisted = !drawerWishlisted;
+    wishBtn.textContent = drawerWishlisted ? '\u2665' : '\u2661';
+    wishBtn.classList.toggle('on', drawerWishlisted);
+    toast(drawerWishlisted ? `\u2665 ${p.name} saved to wishlist` : 'Removed from wishlist');
+  };
+
   document.getElementById('drawerBg').classList.add('on');
   document.getElementById('drawer').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
+
+function selectSize(label, avail){
+  if(!avail) return;
+  drawerSelectedSize = label;
+  // Update button states
+  document.querySelectorAll('.size-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.textContent.trim() === label);
+  });
+  document.getElementById('selectedSizeName').textContent = label;
+  document.getElementById('variantError').classList.remove('show');
+}
+
+function selectColour(name, hex){
+  drawerSelectedColour = {name, hex};
+  // Update swatch states
+  document.querySelectorAll('.colour-btn').forEach(btn => {
+    const sw = btn.querySelector('.colour-swatch');
+    btn.classList.toggle('selected', sw && sw.style.background === hex);
+  });
+  document.getElementById('selectedColourName').textContent = name;
+  document.getElementById('colourNameDisplay').textContent  = name;
+  document.getElementById('colourNameDisplay').style.color  = 'var(--gold-light)';
+  document.getElementById('variantError').classList.remove('show');
+}
+
+function drawerAddToBag(){
+  const p = drawerCurrentProduct;
+  if(!p) return;
+  // Validate selections
+  const hasSize   = !!drawerSelectedSize;
+  const hasColour = !!drawerSelectedColour;
+  if(!hasSize || !hasColour){
+    document.getElementById('variantError').classList.add('show');
+    // Shake the error
+    const errEl = document.getElementById('variantError');
+    errEl.style.transform = 'translateX(-4px)';
+    setTimeout(()=>{ errEl.style.transform='translateX(4px)'; }, 80);
+    setTimeout(()=>{ errEl.style.transform='none'; errEl.style.transition='transform .15s'; }, 160);
+    return;
+  }
+  addToCartWithVariant(p.id, drawerSelectedSize, drawerSelectedColour);
+  const btn = document.getElementById('dAddBtn');
+  btn.textContent = '\u2713 Added!';
+  btn.style.background = 'linear-gradient(135deg,var(--success),#2d7a50)';
+  setTimeout(()=>{
+    btn.textContent = 'Add to Bag \u2192';
+    btn.style.background = '';
+  }, 1600);
+}
+
 function closeDrawer(){
   document.getElementById('drawerBg').classList.remove('on');
   document.getElementById('drawer').classList.remove('on');
   document.body.style.overflow = '';
 }
 
-// ═══════════ CART ═══════════
-function addToCart(id){
+// ═══════════ CART (variant-aware) ═══════════
+function addToCartWithVariant(id, size, colour){
   const p = PRODS.find(x=>x.id===id);
   if(!p || p.stock===0) return;
-  const ex = cart.find(x=>x.id===id);
+  // Cart key = id + size + colour so same product in different variants = separate line
+  const key = `${id}__${size}__${colour.name}`;
+  const ex  = cart.find(x=>x._key===key);
   if(ex){ if(ex.qty>=p.stock){ toast('Max stock reached'); return; } ex.qty++; }
-  else cart.push({...p, qty:1});
+  else cart.push({...p, qty:1, _key:key, selectedSize:size, selectedColour:colour});
   renderCart(); updateBadge();
-  toast(`${p.emoji||'\u2713'} ${p.name} added to bag`);
+  toast(`\u2713 ${p.name} (${colour.name}, ${size}) added`);
 }
-function removeFromCart(id){ cart=cart.filter(x=>x.id!==id); renderCart(); updateBadge(); }
-function changeQty(id, d){
-  const item=cart.find(x=>x.id===id); if(!item) return;
+
+function addToCart(id){
+  // Legacy path used by spotlight Add to Bag (no variant required)
+  const p = PRODS.find(x=>x.id===id);
+  if(!p || p.stock===0) return;
+  // Open drawer so user can pick variant
+  openDrawer(id);
+}
+function removeFromCart(key){
+  cart = cart.filter(x => (x._key||x.id) !== key);
+  renderCart(); updateBadge();
+}
+function changeQty(key, d){
+  const item = cart.find(x => (x._key||x.id) === key);
+  if(!item) return;
   item.qty += d;
-  if(item.qty<=0) removeFromCart(id); else { renderCart(); updateBadge(); }
+  if(item.qty<=0) removeFromCart(key); else { renderCart(); updateBadge(); }
 }
 function updateBadge(){
   document.getElementById('cartBadge').textContent = cart.reduce((s,i)=>s+i.qty,0);
@@ -1465,16 +1713,25 @@ function renderCart(){
     const thumb = src
       ? `<div class="ci-img"><img src="${src}" alt="${item.name}" onerror="this.parentElement.innerHTML='${item.emoji||'🏷'}'"></div>`
       : `<div class="ci-img">${item.emoji||'🏷'}</div>`;
+    // Variant display
+    const variantLine = item.selectedSize || item.selectedColour
+      ? `<div class="ci-variant">
+          ${item.selectedColour ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${item.selectedColour.hex};border:1px solid rgba(255,255,255,.2);vertical-align:middle;margin-right:4px"></span>${item.selectedColour.name}` : ''}
+          ${item.selectedSize && item.selectedColour ? ' &nbsp;·&nbsp; ' : ''}
+          ${item.selectedSize ? item.selectedSize : ''}
+        </div>`
+      : '';
     return `<div class="ci">${thumb}
       <div class="ci-info">
         <div class="ci-sub">${item.subcategory}</div>
         <div class="ci-name">${item.name}</div>
+        ${variantLine}
         <div class="ci-price">${CUR} ${(item.price*item.qty).toLocaleString()}</div>
         <div class="ci-row">
-          <button class="q-btn" onclick="changeQty(${item.id},-1)">&minus;</button>
+          <button class="q-btn" onclick="changeQty('${item._key||item.id}',-1)">&minus;</button>
           <span class="q-num">${item.qty}</span>
-          <button class="q-btn" onclick="changeQty(${item.id},1)">+</button>
-          <button class="ci-del" onclick="removeFromCart(${item.id})">&times;</button>
+          <button class="q-btn" onclick="changeQty('${item._key||item.id}',1)">+</button>
+          <button class="ci-del" onclick="removeFromCart('${item._key||item.id}')">&times;</button>
         </div>
       </div>
     </div>`;
@@ -1525,7 +1782,7 @@ function renderCkStep(){
       </div>
       <div class="o-sum">
         <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:9px">Order Summary</div>
-        ${cart.map(i=>`<div class="o-row"><span>${i.name} \u00d7${i.qty}</span><span>${CUR} ${(i.price*i.qty).toLocaleString()}</span></div>`).join('')}
+        ${cart.map(i=>`<div class="o-row"><span>${i.name} ${i.selectedSize?`(${i.selectedColour?.name||''}, ${i.selectedSize})`:''}  \u00d7${i.qty}</span><span>${CUR} ${(i.price*i.qty).toLocaleString()}</span></div>`).join('')}
         <div class="o-row"><span>Delivery</span><span>${CUR} ${DELIVERY.toLocaleString()}</span></div>
         <div class="o-row tot"><span>Total</span><span class="tp">${CUR} ${total.toLocaleString()}</span></div>
       </div>
