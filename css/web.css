@@ -1,3 +1,4 @@
+
 :root{
   --black:#0a0a0a;--deep:#0f0f0f;--panel:#141414;--card:#181818;
   --border:#222;--border-gold:#7a5f26;
@@ -494,8 +495,63 @@ body.filter-mode #shop .s-header{margin-bottom:32px}
   margin-top:8px;display:none;
 }
 .v-error.show{display:block}
-/* cart variant tag */
-.ci-variant{
+/* ── RECOMMENDATIONS ── */
+.reco-section{
+  margin-top:20px;padding-top:18px;
+  border-top:1px solid var(--border);
+}
+.reco-label{
+  font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--text-faint);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.reco-label::before{content:'✦';color:var(--gold);font-size:9px}
+.reco-track-wrap{overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.reco-track-wrap::-webkit-scrollbar{display:none}
+.reco-track{
+  display:flex;gap:10px;
+  width:max-content;
+}
+.reco-card{
+  width:118px;flex-shrink:0;cursor:pointer;
+  transition:transform .2s var(--ease);
+}
+.reco-card:hover{transform:translateY(-3px)}
+.reco-img{
+  width:118px;height:118px;object-fit:cover;
+  background:var(--card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;overflow:hidden;position:relative;
+  transition:border-color .2s;
+}
+.reco-card:hover .reco-img{border-color:var(--border-gold)}
+.reco-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+.reco-card:hover .reco-img img{transform:scale(1.07)}
+.reco-name{
+  font-size:11px;font-weight:500;letter-spacing:.03em;
+  color:var(--text);margin-top:7px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.reco-price{
+  font-family:'Cormorant Garamond',serif;
+  font-size:13px;color:var(--gold);margin-top:2px;
+}
+.reco-add{
+  width:100%;margin-top:6px;
+  background:none;border:1px solid var(--border);
+  color:var(--text-dim);font-family:'Montserrat',sans-serif;
+  font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 0;transition:all .18s;
+}
+.reco-add:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+/* relevance badge */
+.reco-badge{
+  position:absolute;top:5px;left:5px;
+  background:var(--gold);color:var(--black);
+  font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 6px;
+}
+.reco-badge.same-sub{background:var(--border-gold);color:var(--gold-pale);
   font-size:10px;color:var(--text-faint);letter-spacing:.06em;
   margin-top:2px;
 }

@@ -849,6 +849,84 @@ const VARIANTS = {
   }
 };
 
+// ═══════════ RECOMMENDATION ENGINE ═══════════
+/**
+ * Score every product against the current one and return the top N.
+ * Scoring rubric:
+ *   +40  — same sub-category (most relevant)
+ *   +20  — same category (e.g. both Shoes)
+ *   +15  — price within 30% of current price (similar spend level)
+ *   +10  — price within 60% of current price
+ *   -999 — exclude the product itself
+ */
+function getRecommendations(product, count = 4) {
+  const scored = PRODS
+    .filter(p => p.id !== product.id && p.stock > 0)
+    .map(p => {
+      let score = 0;
+      if (p.subcategory === product.subcategory)  score += 40;
+      else if (p.category === product.category)   score += 20;
+      const priceDiff = Math.abs(p.price - product.price) / product.price;
+      if (priceDiff <= 0.30) score += 15;
+      else if (priceDiff <= 0.60) score += 10;
+      // Small random nudge so identical scores don't always show same order
+      score += Math.random() * 3;
+      return { ...p, _score: score };
+    })
+    .sort((a, b) => b._score - a._score);
+
+  // Always try to include at least one cross-category pick for discovery
+  const sameCat   = scored.filter(p => p.category === product.category).slice(0, count - 1);
+  const crossCat  = scored.filter(p => p.category !== product.category).slice(0, 1);
+  const merged    = [...sameCat, ...crossCat]
+    .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i) // dedupe
+    .slice(0, count);
+
+  return merged;
+}
+
+function renderRecommendations(product) {
+  const recos = getRecommendations(product, 4);
+  if (!recos.length) return '';
+
+  const cards = recos.map(p => {
+    const src   = p.image_data || p.image_url;
+    const isSub = p.subcategory === product.subcategory;
+    const img   = src
+      ? `<img src="${src}" alt="${p.name}" loading="lazy"
+           onerror="this.style.display='none'">`
+      : `<span style="font-size:32px">${p.emoji || '🏷'}</span>`;
+    const badge = isSub
+      ? `<div class="reco-badge same-sub">Similar</div>`
+      : p.category !== product.category
+        ? `<div class="reco-badge">You'll love</div>`
+        : '';
+
+    return `
+      <div class="reco-card" onclick="openDrawer(${p.id})">
+        <div class="reco-img">
+          ${img}
+          ${badge}
+        </div>
+        <div class="reco-name" title="${p.name}">${p.name}</div>
+        <div class="reco-price">${CUR} ${p.price.toLocaleString()}</div>
+        <button class="reco-add"
+          onclick="event.stopPropagation();addToCart(${p.id})"
+          ${p.stock===0 ? 'disabled' : ''}>
+          ${p.stock===0 ? 'Sold Out' : '+ Add'}
+        </button>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="reco-section">
+      <div class="reco-label">You may also like</div>
+      <div class="reco-track-wrap">
+        <div class="reco-track">${cards}</div>
+      </div>
+    </div>`;
+}
+
 // Active drawer selections
 let drawerSelectedSize   = null;
 let drawerSelectedColour = null;
@@ -919,7 +997,10 @@ function openDrawer(id){
       <div class="s-dot ${p.stock>3?'in':p.stock>0?'low':'out'}"></div>
       ${p.stock>10 ? 'In stock' : p.stock>0 ? `Only ${p.stock} left` : 'Out of stock'}
     </div>
-    ${p.sku ? `<div style="font-size:10px;color:var(--text-faint);letter-spacing:.1em;margin-top:9px">SKU: ${p.sku}</div>` : ''}`;
+    ${p.sku ? `<div style="font-size:10px;color:var(--text-faint);letter-spacing:.1em;margin-top:9px">SKU: ${p.sku}</div>` : ''}
+
+    <!-- RECOMMENDATIONS -->
+    ${renderRecommendations(p)}`;
 
   // Footer button state
   const addBtn  = document.getElementById('dAddBtn');
@@ -1344,7 +1425,7 @@ function setFilter(f) {
 }
 
 // ═══════════ WHATSAPP FLOATING BUTTON ═══════════
-const WA_NUMBER = '254700000000'; // ← replace with real number (no + or spaces)
+const WA_NUMBER = '254714757094'; // ← replace with real number (no + or spaces)
 let waBubbleDismissed = false;
 
 function buildWaMessage(product, size, colour) {
