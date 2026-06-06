@@ -1343,7 +1343,93 @@ function setFilter(f) {
   renderShop();
 }
 
-// ═══════════ TOAST ═══════════
+// ═══════════ WHATSAPP FLOATING BUTTON ═══════════
+const WA_NUMBER = '254700000000'; // ← replace with real number (no + or spaces)
+let waBubbleDismissed = false;
+
+function buildWaMessage(product, size, colour) {
+  if (product) {
+    const variantPart = (colour && size)
+      ? ` in ${colour.name}, size ${size}`
+      : size ? ` in size ${size}`
+      : colour ? ` in ${colour.name}` : '';
+    return `Hello TINAH COSMETICS! 👋\n\nI'm interested in:\n\n*${product.name}*${variantPart}\nPrice: KES ${product.price.toLocaleString()}\n${product.sku ? `SKU: ${product.sku}\n` : ''}\nCould you please confirm availability and assist with my order?\n\nThank you! 🌟`;
+  }
+  return `Hello TINAH COSMETICS! 👋\n\nI'd like to enquire about your products. Could you please help me?\n\nThank you!`;
+}
+
+function openWhatsApp() {
+  // If a product drawer is open, use that product + any selections
+  const product = drawerCurrentProduct || null;
+  const size    = drawerSelectedSize   || null;
+  const colour  = drawerSelectedColour || null;
+  const msg     = buildWaMessage(product, size, colour);
+  const url     = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+  closeWaBubble();
+}
+
+function showWaBubble(product) {
+  if (waBubbleDismissed && !product) return;
+  const bubble  = document.getElementById('waBubble');
+  const title   = document.getElementById('waBubbleTitle');
+  const msg     = document.getElementById('waBubbleMsg');
+  const btn     = document.getElementById('waBtn');
+  const badge   = document.getElementById('waBadge');
+
+  if (product) {
+    title.textContent = 'Interested in this?';
+    msg.innerHTML     = `Chat with us about <strong>${product.name}</strong> — KES ${product.price.toLocaleString()}. We reply in minutes! 💬`;
+    btn.classList.add('ping');
+    badge.classList.add('show');
+  } else {
+    title.textContent = 'Chat with us on WhatsApp';
+    msg.innerHTML     = `Hi! Questions about an order or product? We reply within minutes. 👋`;
+    btn.classList.remove('ping');
+    badge.classList.remove('show');
+  }
+  bubble.style.display = 'block';
+}
+
+function closeWaBubble() {
+  document.getElementById('waBubble').style.display = 'none';
+  document.getElementById('waBtn').classList.remove('ping');
+  document.getElementById('waBadge').classList.remove('show');
+  waBubbleDismissed = true;
+}
+
+// Hook into openDrawer — show product-specific bubble when drawer opens
+const _origOpenDrawer = openDrawer;
+openDrawer = function(id) {
+  _origOpenDrawer(id);
+  // Small delay so drawer is visible first
+  setTimeout(() => {
+    const p = PRODS.find(x => x.id === id);
+    if (p) showWaBubble(p);
+  }, 600);
+};
+
+// Hook into closeDrawer — reset bubble to generic when drawer closes
+const _origCloseDrawer = closeDrawer;
+closeDrawer = function() {
+  _origCloseDrawer();
+  if (!waBubbleDismissed) {
+    showWaBubble(null);
+  } else {
+    closeWaBubble();
+    waBubbleDismissed = false; // reset so it can show again next time
+  }
+};
+
+// Show generic bubble 3 seconds after page load
+setTimeout(() => {
+  if (!waBubbleDismissed) showWaBubble(null);
+}, 3000);
+
+// Auto-hide generic bubble after 8 seconds if user hasn't interacted
+setTimeout(() => {
+  if (!drawerCurrentProduct && !waBubbleDismissed) closeWaBubble();
+}, 11000);
 function toast(msg){
   const t = document.createElement('div');
   t.className = 'toast';
