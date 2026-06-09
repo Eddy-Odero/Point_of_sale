@@ -207,9 +207,10 @@ function switchView(v) {
   document.getElementById('returnsView').style.display    = v === 'returns'   ? 'flex' : 'none';
   document.getElementById('reportsView').style.display    = v === 'reports'   ? 'flex' : 'none';
   document.getElementById('customersView').style.display  = v === 'customers' ? 'flex' : 'none';
+  document.getElementById('ordersView').style.display      = v === 'orders'    ? 'flex' : 'none';
   document.querySelectorAll('.tab-btn').forEach((b,i) =>
     b.classList.toggle('active',
-      (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')||(i===3&&v==='reports')||(i===4&&v==='customers')));
+      (i===0&&v==='pos')||(i===1&&v==='inventory')||(i===2&&v==='returns')||(i===3&&v==='reports')||(i===4&&v==='customers')||(i===5&&v==='orders')));
   if (v === 'inventory') { renderInventoryTable(); renderExpiryAlerts(); }
   if (v === 'returns')   renderReturnsTable();
   if (v === 'reports')   renderReports();
@@ -2973,23 +2974,33 @@ Please provide:
 Keep it concise, practical, and specific to a Kenyan cosmetics shop. Use bullet points. Mention specific product names and numbers from the data.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Calls YOUR proxy server — never exposes the API key in the browser.
+    // Set proxyUrl to wherever you deployed server.js
+    // e.g. 'http://localhost:3000/api/ai'  or  'https://tinah-proxy.railway.app/api/ai'
+    const proxyUrl = (storeConfig.aiProxyUrl || '').trim();
+
+    if (!proxyUrl) {
+      throw new Error(
+        'No AI proxy URL configured.\n\n' +
+        'Set it in your maison-data.json under store.aiProxyUrl, e.g.:\n' +
+        '"aiProxyUrl": "http://localhost:3000/api/ai"\n\n' +
+        'See the included proxy/server.js file to set up the backend.'
+      );
+    }
+
+    const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ prompt, maxTokens: 1000 })
     });
 
     if (!res.ok) {
       const err = await res.json().catch(()=>({}));
-      throw new Error(err.error?.message || 'API error '+res.status);
+      throw new Error(err.error || 'Proxy error ' + res.status);
     }
 
     const data = await res.json();
-    const text = data.content?.map(b=>b.text||'').join('') || '';
+    const text = data.text || '';
     const html = markdownToHTML(text);
 
     wrap.innerHTML = `
@@ -3028,3 +3039,170 @@ function markdownToHTML(md) {
 }
 
 // renderForecast is called directly from renderReports below
+
+
+// ═══════════════════════════════════════════════════════
+//  ONLINE ORDERS — reads from localStorage bridge
+// ═══════════════════════════════════════════════════════
+
+const LS_WEB_ORDERS = 'tinah_web_orders';
+
+function getWebOrders() {
+  try { const v = localStorage.getItem(LS_WEB_ORDERS); return v ? JSON.parse(v) : []; }
+  catch { return []; }
+}
+function saveWebOrders(orders) {
+  try { localStorage.setItem(LS_WEB_ORDERS, JSON.stringify(orders)); } catch {}
+}
+
+// Poll for new orders every 30 seconds and update badge
+function initOnlineOrdersPoller() {
+  checkOnlineOrdersBadge();
+  setInterval(checkOnlineOrdersBadge, 30000);
+}
+
+function checkOnlineOrdersBadge() {
+  const orders  = getWebOrders();
+  const pending = orders.filter(o => o.status === 'pending').length;
+  const badge   = document.getElementById('onlineOrdersBadge');
+  if (!badge) return;
+  badge.textContent = pending;
+  badge.style.display = pending > 0 ? 'inline-flex' : 'none';
+  // Flash the tab if there are new pending orders
+  const tab = document.getElementById('onlineOrdersTab');
+  if (tab) tab.style.color = pending > 0 ? 'var(--gold)' : '';
+}
+
+function renderOnlineOrders() {
+  const orders   = getWebOrders();
+  const empty    = document.getElementById('onlineOrdersEmpty');
+  const list     = document.getElementById('onlineOrdersList');
+  const cur      = storeConfig.currency || 'KES';
+
+  if (!orders.length) {
+    empty.style.display = 'block'; list.innerHTML = ''; return;
+  }
+  empty.style.display = 'none';
+  checkOnlineOrdersBadge();
+
+  list.innerHTML = orders.map(o => {
+    const date = new Date(o.placedAt).toLocaleString('en-KE', {
+      day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
+    });
+    const statusColour = {
+      pending:    'var(--gold)',
+      confirmed:  'var(--success)',
+      dispatched: '#5b8ab5',
+      cancelled:  'var(--danger)',
+    }[o.status] || 'var(--text-faint)';
+    const statusLabel = {
+      pending:    '⏳ Pending',
+      confirmed:  '✓ Confirmed',
+      dispatched: '🚚 Dispatched',
+      cancelled:  '✗ Cancelled',
+    }[o.status] || o.status;
+
+    const itemsHTML = o.items.map(i =>
+      `<div style="font-size:11px;color:var(--text-dim);padding:2px 0">
+        ${i.name} ${i.size?`(${i.colour||''} ${i.size})`:''} × ${i.qty}
+        <span style="float:right;color:var(--gold)">${cur} ${(i.price*i.qty).toLocaleString()}</span>
+      </div>`
+    ).join('');
+
+    return `<div class="online-order-card" id="order-${o.id}">
+      <div class="online-order-header">
+        <div>
+          <div class="online-order-id">${o.id}</div>
+          <div class="online-order-date">${date}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:${statusColour}">${statusLabel}</span>
+      </div>
+      <div class="online-order-customer">
+        <div style="font-size:13px;font-weight:600">${o.customer}</div>
+        <div style="font-size:11px;color:var(--text-faint)">${o.phone} · ${o.address}, ${o.city}</div>
+        <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">${o.payMethod}</div>
+      </div>
+      <div class="online-order-items">${itemsHTML}</div>
+      <div class="online-order-total">
+        <span style="font-size:11px;color:var(--text-faint)">Delivery: ${cur} ${(o.delivery||300).toLocaleString()}</span>
+        <span style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold)">${cur} ${o.total.toLocaleString()}</span>
+      </div>
+      <div class="online-order-actions">
+        ${o.status === 'pending' ? `
+          <button class="btn-gold" style="flex:1;padding:8px" onclick="confirmWebOrder('${o.id}')">✓ Confirm</button>
+          <button class="btn-outline" style="flex:1;padding:8px" onclick="loadWebOrderToCart('${o.id}')">→ Load to POS</button>
+          <button class="btn-cancel" style="flex:1;padding:8px" onclick="cancelWebOrder('${o.id}')">✗ Cancel</button>
+        ` : o.status === 'confirmed' ? `
+          <button class="btn-gold" style="flex:1;padding:8px" onclick="dispatchWebOrder('${o.id}')">🚚 Mark Dispatched</button>
+          <button class="btn-outline" style="flex:1;padding:8px" onclick="loadWebOrderToCart('${o.id}')">→ Load to POS</button>
+        ` : `
+          <span style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em">No further actions</span>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function confirmWebOrder(id) {
+  const orders = getWebOrders();
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  o.status = 'confirmed';
+  o.confirmedAt = new Date().toISOString();
+  o.confirmedBy = activeCashier ? activeCashier.name : 'Cashier';
+  saveWebOrders(orders);
+  renderOnlineOrders();
+  toast('✓ Order ' + id + ' confirmed');
+}
+
+function dispatchWebOrder(id) {
+  const orders = getWebOrders();
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  o.status = 'dispatched';
+  o.dispatchedAt = new Date().toISOString();
+  saveWebOrders(orders);
+  renderOnlineOrders();
+  toast('🚚 Order ' + id + ' marked as dispatched');
+}
+
+function cancelWebOrder(id) {
+  if (!confirm('Cancel order ' + id + '? This cannot be undone.')) return;
+  const orders = getWebOrders();
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  o.status = 'cancelled';
+  o.cancelledAt = new Date().toISOString();
+  saveWebOrders(orders);
+  renderOnlineOrders();
+  toast('✗ Order ' + id + ' cancelled');
+}
+
+// Load online order items into the POS cart for processing
+function loadWebOrderToCart(id) {
+  const orders = getWebOrders();
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  clearCart();
+  document.getElementById('customerName').value = o.customer;
+  o.items.forEach(item => {
+    const p = products.find(x => x.id === item.id);
+    if (!p) return;
+    const key = item.id + '__' + (item.size||'') + '__' + (item.colour||'');
+    cart.push({
+      ...p, qty: item.qty,
+      _key: key,
+      selectedSize:   item.size   || null,
+      selectedColour: item.colour ? { name: item.colour, hex: '#888' } : null,
+      _webOrderId: id,
+    });
+  });
+  renderCart();
+  const cartCount = document.getElementById('cartCount');
+  if (cartCount) cartCount.textContent = cart.reduce((s,i)=>s+i.qty,0);
+  switchView('pos');
+  toast('→ Web order ' + id + ' loaded into cart');
+}
+
+// Call on boot to start polling
+initOnlineOrdersPoller();

@@ -1498,3 +1498,113 @@
   }
   .cat-footer-brand { font-family: 'Cormorant Garamond',serif; font-size: 18px; letter-spacing: 0.25em; color: #8a6d2f; margin-bottom: 4px; }
   .cat-footer-note  { font-size: 10px; color: #aaa; letter-spacing: 0.08em; }
+
+  /* ── FORECAST ── */
+  .forecast-notice-warn {
+    background:rgba(200,60,60,0.1);border:1px solid var(--danger);
+    border-radius:var(--radius);padding:10px 14px;
+    font-size:12px;color:var(--danger);line-height:1.6;margin-bottom:12px;
+  }
+  .forecast-notice-info {
+    background:var(--gold-dim);border:1px solid var(--border-gold);
+    border-radius:var(--radius);padding:8px 14px;
+    font-size:11px;color:var(--text-dim);margin-bottom:12px;
+  }
+  .forecast-summary {
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0;
+  }
+  .forecast-summary-stat {
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:12px 14px;
+  }
+  .forecast-summary-label { font-size:10px;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px; }
+  .forecast-summary-val   { font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold-light);margin-bottom:2px; }
+  .forecast-summary-range { font-size:10px;color:var(--text-faint); }
+  .forecast-breakdown-table { width:100%;border-collapse:collapse;margin-top:12px;font-size:11px; }
+  .forecast-breakdown-table th { background:var(--panel);padding:7px 10px;text-align:left;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint); }
+  .forecast-breakdown-table td { padding:6px 10px;border-bottom:1px solid var(--border); }
+
+  /* ── AI INSIGHTS ── */
+  .ai-idle-state {
+    padding:28px;text-align:center;
+  }
+  .ai-thinking {
+    display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px;
+  }
+  .ai-thinking-dots {
+    display:flex;gap:6px;
+  }
+  .ai-thinking-dots span {
+    width:8px;height:8px;border-radius:50%;background:var(--gold);
+    animation:aiDot 1.2s ease infinite;
+  }
+  .ai-thinking-dots span:nth-child(2){animation-delay:0.2s}
+  .ai-thinking-dots span:nth-child(3){animation-delay:0.4s}
+  @keyframes aiDot{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}}
+  .ai-thinking-label { font-size:12px;color:var(--text-faint);letter-spacing:0.06em; }
+
+  .ai-response { display:flex;flex-direction:column;gap:12px; }
+  .ai-response-header { display:flex;align-items:center;justify-content:space-between; }
+  .ai-response-badge {
+    font-size:11px;font-weight:600;letter-spacing:0.06em;
+    background:var(--gold-dim);border:1px solid var(--border-gold);
+    border-radius:var(--radius);padding:3px 10px;color:var(--gold);
+  }
+  .ai-response-body {
+    font-size:12px;color:var(--text-dim);line-height:1.8;
+    border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+    background:var(--panel);
+  }
+  .ai-section-head { font-weight:700;color:var(--gold-light);margin:12px 0 6px;letter-spacing:0.04em; }
+  .ai-numbered-head { margin:10px 0 4px;color:var(--text); }
+  .ai-bullet {
+    padding-left:16px;position:relative;margin:4px 0;
+  }
+  .ai-bullet::before { content:'·';position:absolute;left:4px;color:var(--gold); }
+  .ai-response-footer { font-size:10px;color:var(--text-faint);letter-spacing:0.04em; }
+  .ai-rerun-btn {
+    background:none;border:none;color:var(--gold);font-size:10px;
+    cursor:pointer;letter-spacing:0.04em;padding:0;
+  }
+  .ai-rerun-btn:hover{text-decoration:underline}
+  .ai-error {
+    padding:20px;text-align:center;border:1px solid var(--border);
+    border-radius:var(--radius);background:var(--panel);
+  }
+  @media(max-width:768px){
+    .forecast-summary{grid-template-columns:1fr}
+  }
+
+  /* ── ONLINE ORDERS ── */
+  .online-orders-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--gold); color: var(--black);
+    border-radius: 10px; font-size: 9px; font-weight: 700;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    margin-left: 4px; vertical-align: middle;
+  }
+  .online-order-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); margin: 12px 20px;
+    overflow: hidden; transition: border-color 0.2s;
+  }
+  .online-order-card:hover { border-color: var(--border-gold); }
+  .online-order-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
+  }
+  .online-order-id {
+    font-family: 'Courier New', monospace; font-size: 11px;
+    color: var(--gold); font-weight: 700; letter-spacing: 0.06em;
+  }
+  .online-order-date { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+  .online-order-customer { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .online-order-items { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .online-order-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  .online-order-actions {
+    display: flex; gap: 8px; padding: 10px 16px;
+    flex-wrap: wrap;
+  }

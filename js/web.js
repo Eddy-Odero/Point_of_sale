@@ -620,11 +620,20 @@ function closeShiftSummary() {
 }
 
 // ═══════════ DATA ═══════════
-const data = getSeedData();
-const PRODS = data.products;
-const CATS  = data.categories;
-const CUR   = 'KES';
+const _seed     = getSeedData();
+const _bridge   = window.TINAH_BRIDGE || {};
+
+// Use live POS data if available, otherwise fall back to seed data
+const PRODS    = _bridge.products   || _seed.products;
+const CATS     = _bridge.categories || _seed.categories;
+const _config  = _bridge.config     || _seed.store || {};
+const CUR      = _config.currency   || 'KES';
 const DELIVERY = 300;
+
+// Show a subtle indicator when live POS data is loaded
+if (_bridge.hasLiveData) {
+  console.info('[TINAH] Live POS data loaded — ' + PRODS.length + ' products, stock levels synced.');
+}
 
 // ═══════════ STATE ═══════════
 let cart = [];
@@ -1245,22 +1254,53 @@ function setPM(m){
     d.innerHTML = `<div style="padding:14px;background:var(--card);border:1px solid var(--border);font-size:12px;color:var(--text-dim);letter-spacing:.04em;line-height:1.8">Pay cash when your order arrives. Our delivery agent will collect payment at the door.</div>`;
   }
 }
-function placeOrder(){
-  const ref = 'TC-' + Date.now().toString(36).toUpperCase().slice(-6);
+
+function placeOrder() {
+  const sub   = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const total = sub + DELIVERY;
+
+  // Submit to localStorage bridge for POS to see
+  const orderId = window.submitWebOrder({
+    customer:  document.getElementById('ck_name')?.value?.trim()   || 'Customer',
+    phone:     document.getElementById('ck_phone')?.value?.trim()  || '',
+    address:   document.getElementById('ck_addr')?.value?.trim()   || '',
+    city:      document.getElementById('ck_city')?.value?.trim()   || 'Nairobi',
+    payMethod: selPM,
+    items: cart.map(i => ({
+      id:     i.id,
+      name:   i.name,
+      price:  i.price,
+      qty:    i.qty,
+      size:   i.selectedSize   || null,
+      colour: i.selectedColour?.name || null,
+      sku:    i.sku || '',
+    })),
+    subtotal: sub,
+    delivery: DELIVERY,
+    total,
+  });
+
+  // Show confirmation
   document.getElementById('ckTitle').textContent = 'Order Confirmed!';
   document.getElementById('ckBody').innerHTML = `
     <div class="order-ok">
-      <div class="ok-icon">\u2713</div>
+      <div class="ok-icon">✓</div>
       <div class="ok-title">Thank You!</div>
       <div class="ok-sub">
-        Order <strong style="color:var(--gold)">${ref}</strong> placed successfully.<br><br>
-        ${selPM==='mpesa' ? 'An M-Pesa STK push will be sent shortly.' : selPM==='card' ? 'Card payment processed.' : 'Our agent will collect cash on delivery.'}<br><br>
-        Estimated delivery: <strong style="color:var(--gold-light)">1\u20133 business days, Nairobi</strong>
+        Order <strong style="color:var(--gold)">${orderId}</strong> placed successfully.<br><br>
+        ${selPM === 'mpesa'  ? 'An M-Pesa STK push will be sent shortly.' :
+          selPM === 'card'   ? 'Card payment processed.' :
+                               'Our agent will collect cash on delivery.'}<br><br>
+        Estimated delivery: <strong style="color:var(--gold-light)">1–3 business days, Nairobi</strong>
       </div>
     </div>
-    <button class="place-btn" style="margin-top:22px" onclick="closeCheckout();cart=[];renderCart();updateBadge()">Continue Shopping</button>`;
-  toast('\u2713 Order placed successfully!');
+    <button class="place-btn" style="margin-top:22px"
+      onclick="closeCheckout();cart=[];renderCart();updateBadge()">
+      Continue Shopping
+    </button>`;
+  toast('✓ Order ' + orderId + ' placed!');
 }
+
 
 // ═══════════ SEARCH ═══════════
 function openSearch(){
@@ -1527,3 +1567,64 @@ buildPills();
 renderShop();
 buildTestis();
 observe();
+
+(function () {
+  const LS_PRODUCTS    = 'tinah_products';
+  const LS_CATEGORIES  = 'tinah_categories';
+  const LS_WEB_ORDERS  = 'tinah_web_orders';
+  const LS_CONFIG      = 'tinah_config';
+
+  function lsGet(key) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+    catch { return null; }
+  }
+  function lsSet(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  }
+
+  // ── 1. Load products from POS localStorage ──
+  const posProducts   = lsGet(LS_PRODUCTS);
+  const posCategories = lsGet(LS_CATEGORIES);
+  const posConfig     = lsGet(LS_CONFIG);
+
+  // Expose to web.js — it reads window.TINAH_BRIDGE before falling back to getSeedData()
+  window.TINAH_BRIDGE = {
+    products:   posProducts   || null,
+    categories: posCategories || null,
+    config:     posConfig     || null,
+    hasLiveData: !!posProducts,
+  };
+
+  // ── 2. Submit a website order to localStorage for POS to see ──
+  window.submitWebOrder = function (orderData) {
+    const orders = lsGet(LS_WEB_ORDERS) || [];
+    const order = {
+      id:         'WEB-' + Date.now().toString(36).toUpperCase(),
+      source:     'website',
+      status:     'pending',        // pending → confirmed → dispatched
+      placedAt:   new Date().toISOString(),
+      customer:   orderData.customer,
+      phone:      orderData.phone,
+      address:    orderData.address,
+      city:       orderData.city,
+      payMethod:  orderData.payMethod,
+      items:      orderData.items,   // [{id, name, qty, price, size, colour}]
+      subtotal:   orderData.subtotal,
+      delivery:   orderData.delivery || 300,
+      total:      orderData.total,
+    };
+    orders.unshift(order);
+    lsSet(LS_WEB_ORDERS, orders.slice(0, 200)); // keep last 200
+    return order.id;
+  };
+
+  // ── 3. Check live stock for a product ──
+  window.getLiveStock = function (productId) {
+    const prods = lsGet(LS_PRODUCTS);
+    if (!prods) return null;
+    const p = prods.find(x => x.id === productId);
+    return p ? p.stock : null;
+  };
+
+})();
+

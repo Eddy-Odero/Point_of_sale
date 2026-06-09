@@ -7,8 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <link rel="shortcut icon" href="https://thumbs.dreamstime.com/b/golden-woman-face-rose-beauty-salon-logo-vector-illustration-beautiful-flower-spa-cosmetics-fashion-boutique-hotel-333287283.jpg"/>
 <link rel="stylesheet" href="css/web.css">
-<style>
-</style>
 </head>
 <body>
 
@@ -22,21 +20,29 @@
     TINAH <em>COSMETICS</em>
   </a>
   <div class="nav-links">
-    <a class="nav-link active" id="nl_shop" href="#" onclick="goShopAll(event)">Shop</a>
-    <a class="nav-link" id="nl_clothing" href="#" onclick="filterGo('clothing',event)">Clothing</a>
-    <a class="nav-link" id="nl_shoes" href="#" onclick="filterGo('shoes',event)">Shoes</a>
-    <a class="nav-link" id="nl_cosmetics" href="#" onclick="filterGo('cosmetics',event)">Cosmetics</a>
-    <a class="nav-link" id="nl_about" href="#" onclick="goAbout(event)">About</a>
+    <a class="nav-link active" id="nl_shop"      href="#" onclick="goShopAll(event)">Shop</a>
+    <a class="nav-link"        id="nl_clothing"  href="#" onclick="filterGo('clothing',event)">Clothing</a>
+    <a class="nav-link"        id="nl_shoes"     href="#" onclick="filterGo('shoes',event)">Shoes</a>
+    <a class="nav-link"        id="nl_cosmetics" href="#" onclick="filterGo('cosmetics',event)">Cosmetics</a>
+    <a class="nav-link"        id="nl_about"     href="#" onclick="goAbout(event)">About</a>
   </div>
   <div class="nav-right">
     <button class="nav-icon-btn" onclick="openSearch()" title="Search (Ctrl+K)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
     </button>
     <button class="cart-btn" onclick="openCart()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 0 1-8 0"/>
+      </svg>
       Bag <span class="cart-badge" id="cartBadge">0</span>
     </button>
-    <button class="hamburger" onclick="toggleMobileNav()"><span></span><span></span><span></span></button>
+    <button class="hamburger" onclick="toggleMobileNav()">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
 
@@ -56,19 +62,24 @@
   <div class="hero-line" style="left:50%"></div>
   <div class="hero-line" style="left:82%"></div>
   <div class="hero-content">
-    <div class="hero-eyebrow">Nairobi &bull; Luxury Fashion &amp; Beauty</div>
+    <div class="hero-eyebrow">Kisumu &bull; Luxury Fashion &amp; Beauty</div>
     <h1 class="hero-title">Wear what<br><em>you love.</em></h1>
     <p class="hero-sub">Premium clothing, cosmetics &amp; shoes curated for the modern Kenyan woman. Delivered to your door.</p>
     <div class="hero-ctas">
-      <button class="btn-primary" onclick="goShopAll(event)">Shop the Collection</button>
+      <button class="btn-primary"   onclick="goShopAll(event)">Shop the Collection</button>
       <button class="btn-secondary" onclick="filterGo('cosmetics',event)">Explore Beauty</button>
     </div>
   </div>
-  <div class="hero-scroll"><div class="hero-scroll-lbl">Scroll</div><div class="hero-scroll-bar"></div></div>
+  <div class="hero-scroll">
+    <div class="hero-scroll-lbl">Scroll</div>
+    <div class="hero-scroll-bar"></div>
+  </div>
 </section>
 
 <!-- MARQUEE -->
-<div class="marquee-wrap"><div class="marquee-track" id="marqueeTrack"></div></div>
+<div class="marquee-wrap">
+  <div class="marquee-track" id="marqueeTrack"></div>
+</div>
 
 <!-- CATEGORIES -->
 <section class="section" id="categories">
@@ -84,7 +95,10 @@
 <!-- SPOTLIGHT -->
 <div class="spotlight" id="spotlight">
   <div class="spotlight-inner">
-    <div class="spot-img-wrap reveal" id="spotImg"><div class="spot-corner"></div><div class="spot-badge">Featured</div></div>
+    <div class="spot-img-wrap reveal" id="spotImg">
+      <div class="spot-corner"></div>
+      <div class="spot-badge">Featured</div>
+    </div>
     <div class="reveal" id="spotContent"></div>
   </div>
 </div>
@@ -107,11 +121,13 @@
       </select>
     </div>
     <div class="prod-grid" id="prodGrid"></div>
-    <div class="load-more-wrap"><button class="btn-secondary" id="loadMoreBtn" onclick="loadMore()" style="display:none">Load More</button></div>
+    <div class="load-more-wrap">
+      <button class="btn-secondary" id="loadMoreBtn" onclick="loadMore()" style="display:none">Load More</button>
+    </div>
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
+<!-- TESTIMONIALS / ABOUT -->
 <section class="section" id="about" style="background:var(--deep);border-top:1px solid var(--border)">
   <div class="section-inner">
     <div class="s-header reveal">
@@ -170,12 +186,12 @@
           <a class="f-link" href="#">Instagram</a>
           <a class="f-link" href="#">TikTok</a>
           <a class="f-link" href="#" onclick="openWhatsApp()">WhatsApp</a>
-          <a class="f-link" href="tel:+254700000000">+254 714757094</a>
+          <a class="f-link" href="tel:+254700000000">+254 700 000 000</a>
         </div>
       </div>
     </div>
     <div class="footer-bottom">
-       <div class="f-copy">
+      <div class="f-copy">
         &copy; <span id="copyrightYear"></span> TINAH COSMETICS. All rights reserved. Kisumu, Kenya.
       </div>
       <div class="pay-icons">
@@ -187,6 +203,10 @@
     </div>
   </div>
 </footer>
+
+<!-- ═══════════════════════════════════════
+     OVERLAYS & MODALS
+═══════════════════════════════════════ -->
 
 <!-- PRODUCT QUICK VIEW DRAWER -->
 <div class="overlay-bg" id="drawerBg" onclick="closeDrawer()"></div>
@@ -200,7 +220,7 @@
   <div class="drawer-foot">
     <div class="drawer-foot-row">
       <button class="d-wish-btn" id="dWishBtn" title="Save to wishlist">&#x2661;</button>
-      <button class="d-add-btn" id="dAddBtn" style="flex:1">Add to Bag &rarr;</button>
+      <button class="d-add-btn"  id="dAddBtn"  style="flex:1">Add to Bag &rarr;</button>
     </div>
   </div>
 </div>
@@ -213,13 +233,19 @@
     <button class="close-btn" onclick="closeCart()">&times;</button>
   </div>
   <div class="cart-list" id="cartList">
-    <div class="cart-empty-st"><div class="ic">&#x1F6CD;</div><p>Your bag is empty</p></div>
+    <div class="cart-empty-st">
+      <div class="ic">&#x1F6CD;</div>
+      <p>Your bag is empty</p>
+    </div>
   </div>
   <div class="cart-foot" id="cartFoot" style="display:none">
     <div class="sum-row"><span>Subtotal</span><span id="cSubtotal">KES 0</span></div>
     <div class="sum-row"><span>Delivery</span><span>Calculated at checkout</span></div>
-    <div class="sum-total"><span>Total</span><span class="tp" id="cTotal">KES 0</span></div>
-    <button class="ck-btn" onclick="openCheckout()">Checkout &rarr;</button>
+    <div class="sum-total">
+      <span>Total</span>
+      <span class="tp" id="cTotal">KES 0</span>
+    </div>
+    <button class="ck-btn"   onclick="openCheckout()">Checkout &rarr;</button>
     <button class="cont-btn" onclick="closeCart()">Continue Shopping</button>
   </div>
 </div>
@@ -247,16 +273,12 @@
 
 <!-- WHATSAPP FLOATING BUTTON -->
 <div class="wa-float" id="waFloat">
-  <!-- Bubble tooltip — shown on load & when product is open -->
   <div class="wa-bubble" id="waBubble" style="display:none">
     <button class="wa-bubble-close" onclick="closeWaBubble()" title="Close">&times;</button>
-    <div class="wa-bubble-title" id="waBubbleTitle">Chat with us on WhatsApp</div>
-    <div class="wa-bubble-msg" id="waBubbleMsg">
-      Hi! Need help? We reply within minutes. &#x1F44B;
-    </div>
+    <div class="wa-bubble-title"    id="waBubbleTitle">Chat with us on WhatsApp</div>
+    <div class="wa-bubble-msg"      id="waBubbleMsg">Hi! Need help? We reply within minutes. &#x1F44B;</div>
   </div>
   <button class="wa-btn" id="waBtn" onclick="openWhatsApp()" title="Chat on WhatsApp">
-    <!-- WhatsApp SVG logo -->
     <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path fill="#fff" d="M16 3C9.373 3 4 8.373 4 15c0 2.385.68 4.61 1.857 6.497L4 29l7.733-1.826A11.94 11.94 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3Z"/>
       <path fill="#25D366" d="M16 5.5c-5.238 0-9.5 4.262-9.5 9.5 0 2.1.686 4.043 1.847 5.617l-.945 3.476 3.587-.943A9.456 9.456 0 0 0 16 24.5c5.238 0 9.5-4.262 9.5-9.5S21.238 5.5 16 5.5Z"/>
@@ -269,9 +291,11 @@
 <!-- TOAST -->
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- SCRIPTS -->
 <script src="js/web.js"></script>
 <script>
   document.getElementById("copyrightYear").textContent = new Date().getFullYear();
 </script>
+
 </body>
 </html>

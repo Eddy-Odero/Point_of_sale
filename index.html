@@ -30,6 +30,7 @@
     <button class="tab-btn" onclick="switchView('returns')">Returns</button>
     <button class="tab-btn" onclick="switchView('reports')">Reports</button>
     <button class="tab-btn" onclick="switchView('customers')">Customers</button>
+    <button class="tab-btn" onclick="switchView('orders')" id="onlineOrdersTab">🌐 Online <span class="online-orders-badge" id="onlineOrdersBadge" style="display:none">0</span></button>
   </div>
   <div class="topbar-right">
     <div id="clock"></div>
@@ -274,6 +275,25 @@
       <button class="btn-cancel" onclick="document.getElementById('disposeModal').style.display='none'">Cancel</button>
       <button style="background:rgba(200,60,60,0.12);border:1px solid var(--danger);border-radius:var(--radius);color:var(--danger);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.08em;padding:10px 24px;cursor:pointer" onclick="confirmDispose()">Write Off Stock</button>
     </div>
+  </div>
+</div>
+
+<!-- ONLINE ORDERS VIEW -->
+<div id="ordersView" style="display:none;flex-direction:column;overflow:hidden;flex:1">
+  <div class="inv-header">
+    <div class="inv-title">Online Orders
+      <span style="font-size:11px;color:var(--text-faint);font-weight:400;letter-spacing:0.06em;margin-left:8px">from the website</span>
+    </div>
+    <div class="inv-controls">
+      <button class="btn-outline" onclick="renderOnlineOrders()" style="font-size:11px;padding:5px 14px">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="inv-table-wrap" style="flex:1;overflow:auto">
+    <div id="onlineOrdersEmpty" style="text-align:center;padding:60px;color:var(--text-faint);font-size:12px;letter-spacing:0.08em;display:none">
+      No online orders yet.<br>
+      <span style="font-size:11px">They appear here when customers place orders on your website.</span>
+    </div>
+    <div id="onlineOrdersList"></div>
   </div>
 </div>
 
