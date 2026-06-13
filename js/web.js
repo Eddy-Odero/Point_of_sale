@@ -1,4 +1,3 @@
-
 function getSeedData() {
   return {
     store: { name:"TINAH COSMETICS", cashier:"Vivian", currency:"KES", vat_rate:0.16 },
@@ -620,20 +619,11 @@ function closeShiftSummary() {
 }
 
 // ═══════════ DATA ═══════════
-const _seed     = getSeedData();
-const _bridge   = window.TINAH_BRIDGE || {};
-
-// Use live POS data if available, otherwise fall back to seed data
-const PRODS    = _bridge.products   || _seed.products;
-const CATS     = _bridge.categories || _seed.categories;
-const _config  = _bridge.config     || _seed.store || {};
-const CUR      = _config.currency   || 'KES';
+const data = getSeedData();
+const PRODS = data.products;
+const CATS  = data.categories;
+const CUR   = 'KES';
 const DELIVERY = 300;
-
-// Show a subtle indicator when live POS data is loaded
-if (_bridge.hasLiveData) {
-  console.info('[TINAH] Live POS data loaded — ' + PRODS.length + ' products, stock levels synced.');
-}
 
 // ═══════════ STATE ═══════════
 let cart = [];
@@ -1190,6 +1180,38 @@ function closeCheckout(){
   document.getElementById('ckOverlay').classList.remove('on');
   document.body.style.overflow = '';
 }
+// ═══════════ DELIVERY ZONE LOGIC ═══════════
+// Towns/areas where Cash on Delivery is allowed
+const KISUMU_AREAS = [
+  'kisumu','kisumu town','kisumu cbd','kisumu city',
+  'milimani','kondele','nyalenda','manyatta','migosi',
+  'riat','mamboleo','west kisumu','east kisumu',
+  'south kisumu','north kisumu','kisumu central',
+  'kibuye','shauri moyo','kaloleni','obunga',
+  'kolwa','dunga','kanyakwar','lolwe','nyawita',
+  'otonglo','Mosque road','market','town'
+];
+
+function isCODAllowed(city) {
+  if (!city) return false;
+  const c = city.toLowerCase().trim();
+  return KISUMU_AREAS.some(area => c.includes(area));
+}
+
+function getCityNote(city) {
+  if (!city) return '';
+  if (isCODAllowed(city)) {
+    return `<div class="city-note kisumu">
+      <span>📍</span>
+      <span><strong>Kisumu delivery</strong> — Cash on Delivery available for your area.</span>
+    </div>`;
+  }
+  return `<div class="city-note other">
+    <span>🚚</span>
+    <span><strong>Outside Kisumu</strong> — Payment required before dispatch. We'll confirm your order via WhatsApp.</span>
+  </div>`;
+}
+
 function renderCkStep(){
   const sub   = cart.reduce((s,i)=>s+i.price*i.qty,0);
   const total = sub + DELIVERY;
@@ -1201,31 +1223,55 @@ function renderCkStep(){
     body.innerHTML = `
       <div class="f-group"><label class="f-label">Full Name</label><input class="f-input" id="ck_name" placeholder="Jane Mwangi"></div>
       <div class="f-group"><label class="f-label">Phone Number</label><input class="f-input" id="ck_phone" placeholder="07XX XXX XXX"></div>
-      <div class="f-group"><label class="f-label">Delivery Address</label><input class="f-input" id="ck_addr" placeholder="Street, Estate, City"></div>
+      <div class="f-group"><label class="f-label">Delivery Address</label><input class="f-input" id="ck_addr" placeholder="Street, Estate"></div>
       <div class="f-row2">
-        <div class="f-group"><label class="f-label">City</label><input class="f-input" id="ck_city" value="Nairobi"></div>
-        <div class="f-group"><label class="f-label">Postal Code</label><input class="f-input" id="ck_postal" placeholder="00100"></div>
+        <div class="f-group">
+          <label class="f-label">City / Town</label>
+          <input class="f-input" id="ck_city" placeholder="e.g. Kisumu, Nairobi…"
+            oninput="updateCityNote()" value="Kisumu">
+        </div>
+        <div class="f-group"><label class="f-label">Postal Code</label><input class="f-input" id="ck_postal" placeholder="40100"></div>
       </div>
+      <div id="cityNoteWrap">${getCityNote('Kisumu')}</div>
       <div class="o-sum">
         <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:9px">Order Summary</div>
-        ${cart.map(i=>`<div class="o-row"><span>${i.name} ${i.selectedSize?`(${i.selectedColour?.name||''}, ${i.selectedSize})`:''}  \u00d7${i.qty}</span><span>${CUR} ${(i.price*i.qty).toLocaleString()}</span></div>`).join('')}
+        ${cart.map(i=>`<div class="o-row"><span>${i.name} ${i.selectedSize?`(${i.selectedColour?.name||''}, ${i.selectedSize})`:''} \u00d7${i.qty}</span><span>${CUR} ${(i.price*i.qty).toLocaleString()}</span></div>`).join('')}
         <div class="o-row"><span>Delivery</span><span>${CUR} ${DELIVERY.toLocaleString()}</span></div>
         <div class="o-row tot"><span>Total</span><span class="tp">${CUR} ${total.toLocaleString()}</span></div>
       </div>
       <button class="place-btn" onclick="goToPayment()">Continue to Payment &rarr;</button>`;
   } else if(ckStep===2){
+    const city    = document.getElementById('ck_city')?.value || '';
+    const codOK   = isCODAllowed(city);
     title.textContent = 'Payment';
+
+    // Build payment methods — COD only shown for Kisumu
+    const codMethod = codOK ? `
+      <div class="pm" id="pm_cash" onclick="setPM('cash')">
+        <div class="pm-icon">&#x1F4B5;</div>
+        <div class="pm-lbl">On Delivery</div>
+      </div>` : '';
+
+    // Notice for non-Kisumu customers
+    const prePayNotice = !codOK ? `
+      <div class="city-note other" style="margin-bottom:14px">
+        <span>🔒</span>
+        <span>Delivery to <strong>${city||'your area'}</strong> requires payment before dispatch.
+        We'll confirm via WhatsApp after your order.</span>
+      </div>` : '';
+
     body.innerHTML = `
+      ${prePayNotice}
       <div class="f-group">
         <label class="f-label">Payment Method</label>
-        <div class="pay-methods">
+        <div class="pay-methods" style="grid-template-columns:${codOK?'1fr 1fr 1fr':'1fr 1fr'}">
           <div class="pm on" id="pm_mpesa" onclick="setPM('mpesa')"><div class="pm-icon">&#x1F4F1;</div><div class="pm-lbl">M-Pesa</div></div>
           <div class="pm" id="pm_card" onclick="setPM('card')"><div class="pm-icon">&#x1F4B3;</div><div class="pm-lbl">Card</div></div>
-          <div class="pm" id="pm_cash" onclick="setPM('cash')"><div class="pm-icon">&#x1F4B5;</div><div class="pm-lbl">On Delivery</div></div>
+          ${codMethod}
         </div>
       </div>
       <div id="pmDetail">
-        <div class="f-group"><label class="f-label">M-Pesa Phone</label><input class="f-input" placeholder="07XX XXX XXX"></div>
+        <div class="f-group"><label class="f-label">M-Pesa Phone</label><input class="f-input" id="ck_mpesa_ph" placeholder="07XX XXX XXX"></div>
         <div style="font-size:11px;color:var(--text-faint);letter-spacing:.06em;margin-top:5px">You will receive an STK push to complete payment.</div>
       </div>
       <div class="o-sum">
@@ -1233,46 +1279,89 @@ function renderCkStep(){
       </div>
       <button class="place-btn" onclick="placeOrder()">Place Order \u2713</button>
       <button class="back-btn" onclick="ckStep=1;renderCkStep()">&larr; Back</button>`;
+
+    // Store city in a closure var so placeOrder can read it
+    window._ckCity = city;
   }
 }
+
+function updateCityNote() {
+  const city = document.getElementById('ck_city')?.value || '';
+  const wrap = document.getElementById('cityNoteWrap');
+  if (wrap) wrap.innerHTML = getCityNote(city);
+}
+
 function goToPayment(){
   const name  = document.getElementById('ck_name').value.trim();
   const phone = document.getElementById('ck_phone').value.trim();
   const addr  = document.getElementById('ck_addr').value.trim();
-  if(!name||!phone||!addr){ toast('Please fill all required fields'); return; }
+  const city  = document.getElementById('ck_city').value.trim();
+  if(!name||!phone||!addr||!city){ toast('Please fill all delivery details'); return; }
+
+  // Store delivery details for placeOrder
+  window._ckDelivery = { name, phone, addr, city,
+    postal: document.getElementById('ck_postal').value.trim() };
+
   ckStep=2; renderCkStep();
 }
+
 function setPM(m){
+  const city  = window._ckCity || '';
+  const codOK = isCODAllowed(city);
+  // Guard — don't allow COD if not Kisumu (keyboard/programmatic call)
+  if (m === 'cash' && !codOK) { toast('⚠ Cash on Delivery not available for your area'); return; }
+
   selPM = m;
-  ['mpesa','card','cash'].forEach(x => document.getElementById(`pm_${x}`).classList.toggle('on',x===m));
+  ['mpesa','card','cash'].forEach(x => {
+    const el = document.getElementById(`pm_${x}`);
+    if (el) el.classList.toggle('on', x===m);
+  });
   const d = document.getElementById('pmDetail');
   if(m==='mpesa'){
-    d.innerHTML = `<div class="f-group"><label class="f-label">M-Pesa Phone</label><input class="f-input" placeholder="07XX XXX XXX"></div><div style="font-size:11px;color:var(--text-faint);letter-spacing:.06em;margin-top:5px">You will receive an STK push.</div>`;
+    d.innerHTML = `<div class="f-group"><label class="f-label">M-Pesa Phone</label><input class="f-input" id="ck_mpesa_ph" placeholder="07XX XXX XXX"></div>
+      <div style="font-size:11px;color:var(--text-faint);letter-spacing:.06em;margin-top:5px">You will receive an STK push to complete payment.</div>`;
   } else if(m==='card'){
-    d.innerHTML = `<div class="f-group"><label class="f-label">Card Number</label><input class="f-input" placeholder="**** **** **** ****"></div><div class="f-row2"><div class="f-group"><label class="f-label">Expiry</label><input class="f-input" placeholder="MM/YY"></div><div class="f-group"><label class="f-label">CVV</label><input class="f-input" placeholder="***" type="password"></div></div>`;
+    d.innerHTML = `<div class="f-group"><label class="f-label">Card Number</label><input class="f-input" placeholder="**** **** **** ****"></div>
+      <div class="f-row2">
+        <div class="f-group"><label class="f-label">Expiry</label><input class="f-input" placeholder="MM/YY"></div>
+        <div class="f-group"><label class="f-label">CVV</label><input class="f-input" placeholder="***" type="password"></div>
+      </div>`;
   } else {
-    d.innerHTML = `<div style="padding:14px;background:var(--card);border:1px solid var(--border);font-size:12px;color:var(--text-dim);letter-spacing:.04em;line-height:1.8">Pay cash when your order arrives. Our delivery agent will collect payment at the door.</div>`;
+    d.innerHTML = `<div style="padding:14px;background:var(--card);border:1px solid var(--border);font-size:12px;color:var(--text-dim);letter-spacing:.04em;line-height:1.8">
+      &#x1F4CD; Cash on Delivery is available for <strong style="color:var(--gold)">Kisumu town</strong> orders only.<br>
+      Our delivery agent will collect payment when your order arrives.
+    </div>`;
   }
 }
 
-function placeOrder() {
-  const sub   = cart.reduce((s, i) => s + i.price * i.qty, 0);
+function placeOrder(){
+  const delivery = window._ckDelivery || {};
+  const city     = delivery.city || window._ckCity || '';
+  const codOK    = isCODAllowed(city);
+
+  // Final guard — block COD for non-Kisumu
+  if (selPM === 'cash' && !codOK) {
+    toast('⚠ Cash on Delivery is only available for Kisumu town');
+    return;
+  }
+
+  const sub   = cart.reduce((s,i) => s + i.price * i.qty, 0);
   const total = sub + DELIVERY;
 
-  // Submit to localStorage bridge for POS to see
-  const orderId = window.submitWebOrder({
-    customer:  document.getElementById('ck_name')?.value?.trim()   || 'Customer',
-    phone:     document.getElementById('ck_phone')?.value?.trim()  || '',
-    address:   document.getElementById('ck_addr')?.value?.trim()   || '',
-    city:      document.getElementById('ck_city')?.value?.trim()   || 'Nairobi',
+  // Submit to POS localStorage bridge
+  const orderId = (window.submitWebOrder || function(){ return 'TC-' + Date.now().toString(36).toUpperCase().slice(-6); })({
+    customer:  delivery.name  || '',
+    phone:     delivery.phone || '',
+    address:   delivery.addr  || '',
+    city:      city || 'Kisumu',
     payMethod: selPM,
     items: cart.map(i => ({
       id:     i.id,
       name:   i.name,
       price:  i.price,
       qty:    i.qty,
-      size:   i.selectedSize   || null,
-      colour: i.selectedColour?.name || null,
+      size:   i.selectedSize || null,
+      colour: i.selectedColour ? i.selectedColour.name : null,
       sku:    i.sku || '',
     })),
     subtotal: sub,
@@ -1280,27 +1369,29 @@ function placeOrder() {
     total,
   });
 
-  // Show confirmation
+  const payMsg =
+    selPM === 'mpesa' ? 'An M-Pesa STK push will be sent to your number shortly.' :
+    selPM === 'card'  ? 'Your card payment has been processed.' :
+                        'Our delivery agent will collect cash at your door in Kisumu.';
+
+  const deliveryMsg = codOK
+    ? 'Estimated delivery: <strong style="color:var(--gold-light)">Same day or next day within Kisumu</strong>'
+    : 'Estimated delivery: <strong style="color:var(--gold-light)">2–4 business days</strong> — we’ll confirm via WhatsApp once payment is verified.';
+
+  const firstName = (delivery.name || '').split(' ')[0] || '';
+
   document.getElementById('ckTitle').textContent = 'Order Confirmed!';
-  document.getElementById('ckBody').innerHTML = `
-    <div class="order-ok">
-      <div class="ok-icon">✓</div>
-      <div class="ok-title">Thank You!</div>
-      <div class="ok-sub">
-        Order <strong style="color:var(--gold)">${orderId}</strong> placed successfully.<br><br>
-        ${selPM === 'mpesa'  ? 'An M-Pesa STK push will be sent shortly.' :
-          selPM === 'card'   ? 'Card payment processed.' :
-                               'Our agent will collect cash on delivery.'}<br><br>
-        Estimated delivery: <strong style="color:var(--gold-light)">1–3 business days, Nairobi</strong>
-      </div>
-    </div>
-    <button class="place-btn" style="margin-top:22px"
-      onclick="closeCheckout();cart=[];renderCart();updateBadge()">
-      Continue Shopping
-    </button>`;
+  document.getElementById('ckBody').innerHTML =
+    '<div class="order-ok">' +
+    '<div class="ok-icon">✓</div>' +
+    '<div class="ok-title">Thank You' + (firstName ? ', ' + firstName : '') + '!</div>' +
+    '<div class="ok-sub">' +
+    'Order <strong style="color:var(--gold)">' + orderId + '</strong> placed successfully.<br><br>' +
+    payMsg + '<br><br>' + deliveryMsg +
+    '</div></div>' +
+    '<button class="place-btn" style="margin-top:22px" onclick="closeCheckout();cart=[];renderCart();updateBadge()">Continue Shopping</button>';
   toast('✓ Order ' + orderId + ' placed!');
 }
-
 
 // ═══════════ SEARCH ═══════════
 function openSearch(){
@@ -1568,63 +1659,67 @@ renderShop();
 buildTestis();
 observe();
 
+// ═══════════ POS BRIDGE ═══════════
+// Connects website to POS via localStorage — products, orders, live stock
 (function () {
-  const LS_PRODUCTS    = 'tinah_products';
-  const LS_CATEGORIES  = 'tinah_categories';
-  const LS_WEB_ORDERS  = 'tinah_web_orders';
-  const LS_CONFIG      = 'tinah_config';
+  var LS_PRODUCTS   = 'tinah_products';
+  var LS_CATEGORIES = 'tinah_categories';
+  var LS_WEB_ORDERS = 'tinah_web_orders';
+  var LS_CONFIG     = 'tinah_config';
 
   function lsGet(key) {
-    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
-    catch { return null; }
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+    catch(e) { return null; }
   }
   function lsSet(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
   }
 
-  // ── 1. Load products from POS localStorage ──
-  const posProducts   = lsGet(LS_PRODUCTS);
-  const posCategories = lsGet(LS_CATEGORIES);
-  const posConfig     = lsGet(LS_CONFIG);
+  // 1. Load live products from POS localStorage
+  var posProducts   = lsGet(LS_PRODUCTS);
+  var posCategories = lsGet(LS_CATEGORIES);
+  var posConfig     = lsGet(LS_CONFIG);
 
-  // Expose to web.js — it reads window.TINAH_BRIDGE before falling back to getSeedData()
   window.TINAH_BRIDGE = {
-    products:   posProducts   || null,
-    categories: posCategories || null,
-    config:     posConfig     || null,
+    products:    posProducts   || null,
+    categories:  posCategories || null,
+    config:      posConfig     || null,
     hasLiveData: !!posProducts,
   };
 
-  // ── 2. Submit a website order to localStorage for POS to see ──
+  if (posProducts) {
+    console.info('[TINAH] Live POS data loaded — ' + posProducts.length + ' products synced.');
+  }
+
+  // 2. Submit website order to localStorage for POS to pick up
   window.submitWebOrder = function (orderData) {
-    const orders = lsGet(LS_WEB_ORDERS) || [];
-    const order = {
-      id:         'WEB-' + Date.now().toString(36).toUpperCase(),
-      source:     'website',
-      status:     'pending',        // pending → confirmed → dispatched
-      placedAt:   new Date().toISOString(),
-      customer:   orderData.customer,
-      phone:      orderData.phone,
-      address:    orderData.address,
-      city:       orderData.city,
-      payMethod:  orderData.payMethod,
-      items:      orderData.items,   // [{id, name, qty, price, size, colour}]
-      subtotal:   orderData.subtotal,
-      delivery:   orderData.delivery || 300,
-      total:      orderData.total,
+    var orders = lsGet(LS_WEB_ORDERS) || [];
+    var order = {
+      id:        'WEB-' + Date.now().toString(36).toUpperCase(),
+      source:    'website',
+      status:    'pending',
+      placedAt:  new Date().toISOString(),
+      customer:  orderData.customer,
+      phone:     orderData.phone,
+      address:   orderData.address,
+      city:      orderData.city,
+      payMethod: orderData.payMethod,
+      items:     orderData.items,
+      subtotal:  orderData.subtotal,
+      delivery:  orderData.delivery || 300,
+      total:     orderData.total,
     };
     orders.unshift(order);
-    lsSet(LS_WEB_ORDERS, orders.slice(0, 200)); // keep last 200
+    lsSet(LS_WEB_ORDERS, orders.slice(0, 200));
     return order.id;
   };
 
-  // ── 3. Check live stock for a product ──
+  // 3. Check live stock for a product by id
   window.getLiveStock = function (productId) {
-    const prods = lsGet(LS_PRODUCTS);
+    var prods = lsGet(LS_PRODUCTS);
     if (!prods) return null;
-    const p = prods.find(x => x.id === productId);
+    var p = prods.find(function(x){ return x.id === productId; });
     return p ? p.stock : null;
   };
 
 })();
-
