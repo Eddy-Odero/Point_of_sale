@@ -1346,9 +1346,6 @@ function closeShiftSummary() {
   showCashierPicker(true);
 }
 
-
-// ── localStorage helpers ──
-
 // ── PAYMENT INTEGRITY ──
 
 function cartHash() {
@@ -1751,12 +1748,8 @@ function clearLocalStorage(){
   toast('✓ Cleared — refresh the page to reload');
 }
 
-
 // ── BOOT ──
 boot();
-// ═══════════════════════════════════════════════════════
-//  REPORTS & ANALYTICS
-// ═══════════════════════════════════════════════════════
 
 let reportPeriod = 'month';
 let chartRevenue = null, chartDonut = null, chartBest = null;
@@ -2160,11 +2153,6 @@ function exportReportPDF() {
   win.document.close();
 }
 
-
-// ═══════════════════════════════════════════════════════
-//  CUSTOMER LOYALTY
-// ═══════════════════════════════════════════════════════
-
 const TIERS = [
   { name:'VIP',    minVisits:20, minSpend:50000, pct:15, color:'#c9a84c', icon:'👑' },
   { name:'Gold',   minVisits:10, minSpend:20000, pct:10, color:'#d4af37', icon:'🥇' },
@@ -2312,10 +2300,6 @@ function deleteCustomer(id) {
   toast('✓ Customer removed');
 }
 
-// ═══════════════════════════════════════════════════════
-//  EXPIRY & DISPOSAL
-// ═══════════════════════════════════════════════════════
-
 function getExpiryStatus(p) {
   if (!p.expiryDate) return null;
   const exp  = new Date(p.expiryDate);
@@ -2399,13 +2383,6 @@ function getExpiryBadgeHTML(p) {
   return `<span style="font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid ${colours[s.cls]};color:${colours[s.cls]};margin-left:4px">${s.label}</span>`;
 }
 
-
-// ═══════════════════════════════════════════════════════
-//  SMS ALERTS — PROTOTYPE
-//  Stores outbox in localStorage. Real sending via
-//  Africa's Talking or Twilio replaces sendSmsNow().
-// ═══════════════════════════════════════════════════════
-
 let smsOutbox = [];
 const LS_SMS = 'tinah_sms_outbox';
 
@@ -2470,8 +2447,7 @@ function sendSmsBlast() {
       status:    'queued',    // 'queued' | 'sent' | 'failed'
       apiRef:    null,
     };
-    // ── Prototype: swap this block for real API call ──
-    // sendViAfricas Talking(entry) or sendViaTwilio(entry)
+   
     entry.status = simulateSend(entry);
     smsOutbox.unshift(entry);
     return entry;
@@ -2488,24 +2464,8 @@ function sendSmsBlast() {
 
 // Prototype simulation — replace with real API call
 function simulateSend(entry) {
-  // In production: POST to your Node.js/Firebase endpoint which calls AT or Twilio
-  // For now: mark as 'sent' (no actual SMS delivered)
   return 'sent';
 }
-
-// ── Real API stub — uncomment + fill in when backend is ready ──
-/*
-async function sendViaAfricasTalking(entry) {
-  const res = await fetch('https://YOUR-BACKEND/api/sms', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ to: entry.to, message: entry.message })
-  });
-  const data = await res.json();
-  entry.apiRef = data.messageId;
-  entry.status = data.success ? 'sent' : 'failed';
-}
-*/
 
 function renderSmsOutbox() {
   const wrap = document.getElementById('smsOutboxList');
@@ -2540,11 +2500,6 @@ function toggleSmsOptIn(custId) {
   renderCustomersTable();
   toast(c.smsOptIn ? `✓ ${c.name} opted in to SMS` : `${c.name} opted out`);
 }
-
-
-// ═══════════════════════════════════════════════════════
-//  PRODUCT CATALOGUE / LOOKBOOK
-// ═══════════════════════════════════════════════════════
 
 let catColumns = 2;
 
@@ -2734,11 +2689,6 @@ function cataloguePrintCSS(cols) {
   `;
 }
 
-
-// ═══════════════════════════════════════════════════════
-//  SALES FORECAST — linear regression, browser-only
-// ═══════════════════════════════════════════════════════
-
 let chartForecast = null;
 
 function renderForecast() {
@@ -2903,10 +2853,6 @@ function renderForecast() {
     </table>`;
 }
 
-// ═══════════════════════════════════════════════════════
-//  AI INSIGHTS — Claude API narrates patterns
-// ═══════════════════════════════════════════════════════
-
 async function runAiInsights() {
   const wrap = document.getElementById('aiInsightsContent');
   wrap.innerHTML = `<div class="ai-thinking"><div class="ai-thinking-dots"><span></span><span></span><span></span></div><div class="ai-thinking-label">Analysing your sales data…</div></div>`;
@@ -2974,9 +2920,7 @@ Please provide:
 Keep it concise, practical, and specific to a Kenyan cosmetics shop. Use bullet points. Mention specific product names and numbers from the data.`;
 
   try {
-    // Calls YOUR proxy server — never exposes the API key in the browser.
-    // Set proxyUrl to wherever you deployed server.js
-    // e.g. 'http://localhost:3000/api/ai'  or  'https://tinah-proxy.railway.app/api/ai'
+   
     const proxyUrl = (storeConfig.aiProxyUrl || '').trim();
 
     if (!proxyUrl) {
@@ -3038,13 +2982,6 @@ function markdownToHTML(md) {
     .replace(/\n/g, '');
 }
 
-// renderForecast is called directly from renderReports below
-
-
-// ═══════════════════════════════════════════════════════
-//  ONLINE ORDERS — reads from localStorage bridge
-// ═══════════════════════════════════════════════════════
-
 const LS_WEB_ORDERS = 'tinah_web_orders';
 
 function getWebOrders() {
@@ -3054,155 +2991,3 @@ function getWebOrders() {
 function saveWebOrders(orders) {
   try { localStorage.setItem(LS_WEB_ORDERS, JSON.stringify(orders)); } catch {}
 }
-
-// Poll for new orders every 30 seconds and update badge
-function initOnlineOrdersPoller() {
-  checkOnlineOrdersBadge();
-  setInterval(checkOnlineOrdersBadge, 30000);
-}
-
-function checkOnlineOrdersBadge() {
-  const orders  = getWebOrders();
-  const pending = orders.filter(o => o.status === 'pending').length;
-  const badge   = document.getElementById('onlineOrdersBadge');
-  if (!badge) return;
-  badge.textContent = pending;
-  badge.style.display = pending > 0 ? 'inline-flex' : 'none';
-  // Flash the tab if there are new pending orders
-  const tab = document.getElementById('onlineOrdersTab');
-  if (tab) tab.style.color = pending > 0 ? 'var(--gold)' : '';
-}
-
-function renderOnlineOrders() {
-  const orders   = getWebOrders();
-  const empty    = document.getElementById('onlineOrdersEmpty');
-  const list     = document.getElementById('onlineOrdersList');
-  const cur      = storeConfig.currency || 'KES';
-
-  if (!orders.length) {
-    empty.style.display = 'block'; list.innerHTML = ''; return;
-  }
-  empty.style.display = 'none';
-  checkOnlineOrdersBadge();
-
-  list.innerHTML = orders.map(o => {
-    const date = new Date(o.placedAt).toLocaleString('en-KE', {
-      day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
-    });
-    const statusColour = {
-      pending:    'var(--gold)',
-      confirmed:  'var(--success)',
-      dispatched: '#5b8ab5',
-      cancelled:  'var(--danger)',
-    }[o.status] || 'var(--text-faint)';
-    const statusLabel = {
-      pending:    '⏳ Pending',
-      confirmed:  '✓ Confirmed',
-      dispatched: '🚚 Dispatched',
-      cancelled:  '✗ Cancelled',
-    }[o.status] || o.status;
-
-    const itemsHTML = o.items.map(i =>
-      `<div style="font-size:11px;color:var(--text-dim);padding:2px 0">
-        ${i.name} ${i.size?`(${i.colour||''} ${i.size})`:''} × ${i.qty}
-        <span style="float:right;color:var(--gold)">${cur} ${(i.price*i.qty).toLocaleString()}</span>
-      </div>`
-    ).join('');
-
-    return `<div class="online-order-card" id="order-${o.id}">
-      <div class="online-order-header">
-        <div>
-          <div class="online-order-id">${o.id}</div>
-          <div class="online-order-date">${date}</div>
-        </div>
-        <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:${statusColour}">${statusLabel}</span>
-      </div>
-      <div class="online-order-customer">
-        <div style="font-size:13px;font-weight:600">${o.customer}</div>
-        <div style="font-size:11px;color:var(--text-faint)">${o.phone} · ${o.address}, ${o.city}</div>
-        <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">${o.payMethod}</div>
-      </div>
-      <div class="online-order-items">${itemsHTML}</div>
-      <div class="online-order-total">
-        <span style="font-size:11px;color:var(--text-faint)">Delivery: ${cur} ${(o.delivery||300).toLocaleString()}</span>
-        <span style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold)">${cur} ${o.total.toLocaleString()}</span>
-      </div>
-      <div class="online-order-actions">
-        ${o.status === 'pending' ? `
-          <button class="btn-gold" style="flex:1;padding:8px" onclick="confirmWebOrder('${o.id}')">✓ Confirm</button>
-          <button class="btn-outline" style="flex:1;padding:8px" onclick="loadWebOrderToCart('${o.id}')">→ Load to POS</button>
-          <button class="btn-cancel" style="flex:1;padding:8px" onclick="cancelWebOrder('${o.id}')">✗ Cancel</button>
-        ` : o.status === 'confirmed' ? `
-          <button class="btn-gold" style="flex:1;padding:8px" onclick="dispatchWebOrder('${o.id}')">🚚 Mark Dispatched</button>
-          <button class="btn-outline" style="flex:1;padding:8px" onclick="loadWebOrderToCart('${o.id}')">→ Load to POS</button>
-        ` : `
-          <span style="font-size:11px;color:var(--text-faint);letter-spacing:0.06em">No further actions</span>
-        `}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function confirmWebOrder(id) {
-  const orders = getWebOrders();
-  const o = orders.find(x => x.id === id);
-  if (!o) return;
-  o.status = 'confirmed';
-  o.confirmedAt = new Date().toISOString();
-  o.confirmedBy = activeCashier ? activeCashier.name : 'Cashier';
-  saveWebOrders(orders);
-  renderOnlineOrders();
-  toast('✓ Order ' + id + ' confirmed');
-}
-
-function dispatchWebOrder(id) {
-  const orders = getWebOrders();
-  const o = orders.find(x => x.id === id);
-  if (!o) return;
-  o.status = 'dispatched';
-  o.dispatchedAt = new Date().toISOString();
-  saveWebOrders(orders);
-  renderOnlineOrders();
-  toast('🚚 Order ' + id + ' marked as dispatched');
-}
-
-function cancelWebOrder(id) {
-  if (!confirm('Cancel order ' + id + '? This cannot be undone.')) return;
-  const orders = getWebOrders();
-  const o = orders.find(x => x.id === id);
-  if (!o) return;
-  o.status = 'cancelled';
-  o.cancelledAt = new Date().toISOString();
-  saveWebOrders(orders);
-  renderOnlineOrders();
-  toast('✗ Order ' + id + ' cancelled');
-}
-
-// Load online order items into the POS cart for processing
-function loadWebOrderToCart(id) {
-  const orders = getWebOrders();
-  const o = orders.find(x => x.id === id);
-  if (!o) return;
-  clearCart();
-  document.getElementById('customerName').value = o.customer;
-  o.items.forEach(item => {
-    const p = products.find(x => x.id === item.id);
-    if (!p) return;
-    const key = item.id + '__' + (item.size||'') + '__' + (item.colour||'');
-    cart.push({
-      ...p, qty: item.qty,
-      _key: key,
-      selectedSize:   item.size   || null,
-      selectedColour: item.colour ? { name: item.colour, hex: '#888' } : null,
-      _webOrderId: id,
-    });
-  });
-  renderCart();
-  const cartCount = document.getElementById('cartCount');
-  if (cartCount) cartCount.textContent = cart.reduce((s,i)=>s+i.qty,0);
-  switchView('pos');
-  toast('→ Web order ' + id + ' loaded into cart');
-}
-
-// Call on boot to start polling
-initOnlineOrdersPoller();
